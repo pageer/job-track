@@ -1,0 +1,7 @@
+node_modules/
+backend/public/build/
+tags
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

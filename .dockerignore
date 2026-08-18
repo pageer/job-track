@@ -1,0 +1,13 @@
+# Keep the Docker build context small and reproducible.
+.git
+.gitignore
+
+**/node_modules
+**/vendor
+**/var
+**/dist
+
+backend/.env.local
+backend/.env.test
+
+.dockerignore
