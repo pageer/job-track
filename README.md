@@ -130,4 +130,4 @@ All endpoints are under `/api`. Authentication is session-based with a SameSite=
 
 ## License
 
-Proprietary.
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
