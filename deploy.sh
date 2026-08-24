@@ -8,8 +8,9 @@
 #   ./deploy.sh --no-build     # skip frontend build (useful when only backend changed)
 #
 # Prerequisites on the server:
-#   - git, PHP 8.2+ with pdo_mysql, Composer, Node.js 22+ with npm
+#   - git, PHP 8.2+ with pdo_mysql, Composer
 #   - A .env.local in backend/ with production DATABASE_URL and APP_ENV=prod
+#   - Frontend assets are uploaded separately via push-assets.sh
 
 set -euo pipefail
 
@@ -41,7 +42,7 @@ fail() { printf "\033[31m✗ %s\033[0m\n" "$1"; exit 1; }
 
 # 1. Check prerequisites
 
-for cmd in git php composer node npm; do
+for cmd in git php composer; do
   command -v "$cmd" >/dev/null 2>&1 || fail "'$cmd' is not installed or not in PATH."
 done
 
