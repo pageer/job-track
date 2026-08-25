@@ -298,6 +298,49 @@ a:hover {
   gap: 0.5rem;
 }
 
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-right: 0.2rem;
+}
+
+.badge-clickable {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.badge-clickable:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.badge-clickable:not(:disabled):hover {
+  border-color: currentColor;
+}
+
+.badge-active {
+  opacity: 1;
+}
+
+.badge-inactive {
+  opacity: 0.4;
+}
+
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .card-list {
   list-style: none;
   margin: 0;
@@ -341,6 +384,14 @@ a:hover {
   color: var(--color-text-muted);
   font-size: 0.85rem;
   margin-top: 0.2rem;
+}
+
+.card-dates {
+  display: flex;
+  gap: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
 }
 
 .panel {

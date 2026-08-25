@@ -1,5 +1,6 @@
 node_modules/
 backend/public/build/
+package-lock.json
 tags
 *.swp
 *.swo

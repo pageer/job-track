@@ -167,4 +167,10 @@ class Job
     {
         return $this->jobSearch?->getId();
     }
+
+    #[Groups(['job.list', 'job.read'])]
+    public function getActionDate(): ?\DateTimeImmutable
+    {
+        return $this->application?->getActionDate();
+    }
 }

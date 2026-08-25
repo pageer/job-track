@@ -28,6 +28,7 @@ export interface JobSummary {
   company: string;
   status: JobStatus;
   jobSearchId: number;
+  actionDate: string | null;
   createdAt: string;
 }
 

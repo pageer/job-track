@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type { JobSearchDetail, JobStatus } from '../types';
-import { JOB_STATUS_LABELS } from '../types';
+import { JOB_STATUSES, JOB_STATUS_LABELS } from '../types';
 import { formatDate, toDateInputValue } from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
@@ -29,6 +29,12 @@ const emptyJobForm: JobFormState = {
   descriptionUrl: '',
 };
 
+const defaultActiveStatuses = new Set<JobStatus>(
+  JOB_STATUSES.filter((s) => s !== 'rejected')
+);
+
+type SortKey = 'createdAt' | 'actionDate';
+
 export default function SearchDetailPage() {
   const { searchId } = useParams<{ searchId: string }>();
   const navigate = useNavigate();
@@ -44,6 +50,9 @@ export default function SearchDetailPage() {
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobForm, setJobForm] = useState<JobFormState>(emptyJobForm);
   const [savingJob, setSavingJob] = useState(false);
+
+  const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(defaultActiveStatuses);
+  const [sortBy, setSortBy] = useState<SortKey>('createdAt');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -132,11 +141,48 @@ export default function SearchDetailPage() {
     }
   }
 
+  function toggleStatus(status: JobStatus) {
+    setActiveStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) {
+        next.delete(status);
+      } else {
+        next.add(status);
+      }
+      return next;
+    });
+  }
+
+  function selectAllStatuses() {
+    setActiveStatuses(new Set(JOB_STATUSES));
+  }
+
+  function selectDefaultStatuses() {
+    setActiveStatuses(defaultActiveStatuses);
+  }
+
   const jobs = search?.jobs ?? [];
+
   const jobCounts = jobs.reduce<Record<string, number>>((acc, j) => {
     acc[j.status] = (acc[j.status] ?? 0) + 1;
     return acc;
   }, {});
+
+  const filteredAndSorted = useMemo(() => {
+    const filtered = jobs.filter((j) => activeStatuses.has(j.status));
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'actionDate') {
+        const aDate = a.actionDate ?? '';
+        const bDate = b.actionDate ?? '';
+        if (aDate && bDate) return bDate.localeCompare(aDate);
+        if (aDate) return -1;
+        if (bDate) return 1;
+        return b.createdAt.localeCompare(a.createdAt);
+      }
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+  }, [jobs, activeStatuses, sortBy]);
 
   return (
     <div className="page">
@@ -179,12 +225,29 @@ export default function SearchDetailPage() {
       </div>
 
       {!loading && jobs.length > 0 && (
-        <div className="stat-row">
-          {Object.entries(jobCounts).map(([status, count]) => (
-            <span key={status} className={`badge badge-${status}`}>
-              {JOB_STATUS_LABELS[status as JobStatus]}: {count}
-            </span>
-          ))}
+        <div className="filter-bar">
+          <span className="filter-label">Status:</span>
+          {JOB_STATUSES.map((status) => {
+            const count = jobCounts[status] ?? 0;
+            const active = activeStatuses.has(status);
+            return (
+              <button
+                key={status}
+                type="button"
+                className={`badge badge-${status} badge-clickable ${active ? 'badge-active' : 'badge-inactive'}`}
+                onClick={() => toggleStatus(status)}
+                disabled={count === 0}
+              >
+                {JOB_STATUS_LABELS[status]}: {count}
+              </button>
+            );
+          })}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={selectAllStatuses}>
+            All
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={selectDefaultStatuses}>
+            Default
+          </button>
         </div>
       )}
 
@@ -192,23 +255,50 @@ export default function SearchDetailPage() {
 
       <div className="page-toolbar">
         <h2>Jobs</h2>
-        <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
-          Add job
-        </button>
+        <div className="btn-group">
+          {jobs.length > 0 && (
+            <div className="sort-group">
+              <span className="filter-label">Sort:</span>
+              <button
+                type="button"
+                className={`btn btn-sm ${sortBy === 'createdAt' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setSortBy('createdAt')}
+              >
+                Date added
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${sortBy === 'actionDate' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setSortBy('actionDate')}
+              >
+                Date applied
+              </button>
+            </div>
+          )}
+          <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
+            Add job
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="spinner" aria-label="Loading" />
-      ) : jobs.length === 0 ? (
+      ) : filteredAndSorted.length === 0 ? (
         <div className="empty-state">
-          <p>No jobs in this search yet.</p>
-          <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
-            Add your first job
-          </button>
+          {jobs.length === 0 ? (
+            <>
+              <p>No jobs in this search yet.</p>
+              <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
+                Add your first job
+              </button>
+            </>
+          ) : (
+            <p>No jobs match the selected filters.</p>
+          )}
         </div>
       ) : (
         <ul className="card-list">
-          {jobs.map((job) => (
+          {filteredAndSorted.map((job) => (
             <li key={job.id}>
               <Link to={`/jobs/${job.id}`} className="card card-link">
                 <div className="card-title-row">
@@ -216,6 +306,10 @@ export default function SearchDetailPage() {
                   <span className={`badge badge-${job.status}`}>{JOB_STATUS_LABELS[job.status]}</span>
                 </div>
                 <div className="card-meta">{job.company}</div>
+                <div className="card-dates">
+                  <span>Added {formatDate(job.createdAt)}</span>
+                  {job.actionDate && <span>Applied {formatDate(job.actionDate)}</span>}
+                </div>
               </Link>
             </li>
           ))}
