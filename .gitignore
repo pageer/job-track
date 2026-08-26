@@ -1,6 +1,7 @@
 node_modules/
 backend/public/build/
 package-lock.json
+.env
 tags
 *.swp
 *.swo
