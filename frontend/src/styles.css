@@ -762,6 +762,22 @@ a:hover {
   line-height: 1.6;
 }
 
+.cover-letter-collapsed {
+  max-height: 6.4em;
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to bottom, #000 65%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
+}
+
+.cover-letter-expanded {
+  max-height: none;
+}
+
+.cover-letter-toggle {
+  margin-top: 0.4rem;
+}
+
 .cover-letter-preview img {
   max-width: 100%;
   height: auto;

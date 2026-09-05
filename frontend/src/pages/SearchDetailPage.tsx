@@ -302,10 +302,10 @@ export default function SearchDetailPage() {
             <li key={job.id}>
               <Link to={`/jobs/${job.id}`} className="card card-link">
                 <div className="card-title-row">
-                  <span className="card-title">{job.title}</span>
+                  <span className="card-title">{job.company}</span>
                   <span className={`badge badge-${job.status}`}>{JOB_STATUS_LABELS[job.status]}</span>
                 </div>
-                <div className="card-meta">{job.company}</div>
+                <div className="card-meta">{job.title}</div>
                 <div className="card-dates">
                   <span>Added {formatDate(job.createdAt)}</span>
                   {job.actionDate && <span>Applied {formatDate(job.actionDate)}</span>}

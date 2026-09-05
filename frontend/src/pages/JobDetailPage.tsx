@@ -44,6 +44,7 @@ export default function JobDetailPage() {
   const [notes, setNotes] = useState('');
   const [actionDate, setActionDate] = useState('');
   const [savingLetter, setSavingLetter] = useState(false);
+  const [showFullLetter, setShowFullLetter] = useState(false);
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
@@ -402,7 +403,19 @@ export default function JobDetailPage() {
             {application.coverLetterHtml && (
               <div className="detail-row">
                 <span className="detail-label">Cover letter</span>
-                <div className="cover-letter-preview" dangerouslySetInnerHTML={{ __html: application.coverLetterHtml }} />
+                <div>
+                  <div
+                    className={`cover-letter-preview ${showFullLetter ? 'cover-letter-expanded' : 'cover-letter-collapsed'}`}
+                    dangerouslySetInnerHTML={{ __html: application.coverLetterHtml }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost cover-letter-toggle"
+                    onClick={() => setShowFullLetter((v) => !v)}
+                  >
+                    {showFullLetter ? 'Show less' : 'Show more'}
+                  </button>
+                </div>
               </div>
             )}
             {application.notes && (
