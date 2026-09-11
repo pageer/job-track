@@ -7,6 +7,7 @@ use App\Entity\Interview;
 use App\Entity\User;
 use App\Repository\ApplicationRepository;
 use App\Repository\InterviewRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,8 @@ class InterviewController extends AbstractController
 {
     public function __construct(
         private InterviewRepository $interviewRepository,
-        private ApplicationRepository $applicationRepository
+        private ApplicationRepository $applicationRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -53,8 +55,8 @@ class InterviewController extends AbstractController
         $interview->setInterviewers($this->parseInterviewers($data['interviewers'] ?? []));
         $interview->setNotes($this->nullableString($data['notes'] ?? null));
 
-        $this->interviewRepository->getEntityManager()->persist($interview);
-        $this->interviewRepository->getEntityManager()->flush();
+        $this->entityManager->persist($interview);
+        $this->entityManager->flush();
 
         return $this->json($interview, Response::HTTP_CREATED, [], ['groups' => ['interview.read']]);
     }
@@ -85,7 +87,7 @@ class InterviewController extends AbstractController
             $interview->setNotes($this->nullableString($data['notes']));
         }
 
-        $this->interviewRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($interview, 200, [], ['groups' => ['interview.read']]);
     }
@@ -98,8 +100,8 @@ class InterviewController extends AbstractController
             return $this->json(['error' => 'Interview not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->interviewRepository->getEntityManager()->remove($interview);
-        $this->interviewRepository->getEntityManager()->flush();
+        $this->entityManager->remove($interview);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }

@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -20,6 +21,7 @@ class ResetPasswordCommand extends Command
     public function __construct(
         private UserRepository $userRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private EntityManagerInterface $entityManager,
     ) {
         parent::__construct();
     }
@@ -52,7 +54,7 @@ class ResetPasswordCommand extends Command
         }
 
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
-        $this->userRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         $io->success(sprintf('Password reset for "%s" (%s).', $user->getName(), $user->getEmail()));
 

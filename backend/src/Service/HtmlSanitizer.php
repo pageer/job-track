@@ -43,7 +43,8 @@ class HtmlSanitizer
         'img'      => ['src', 'alt', 'width', 'height', 'style'],
     ];
 
-    private const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
+    /** Prefixes allowed on href/src attributes (matched lowercase). */
+    private const ALLOWED_PROTOCOLS = ['http://', 'https://', 'mailto:'];
 
     private const STYLE_PROPERTIES = [
         'color', 'background-color', 'font-size', 'font-weight', 'font-style',
@@ -136,7 +137,7 @@ class HtmlSanitizer
                 }
 
                 // Ensure absolute URLs with safe protocols
-                if ($lowerValue !== '' && !str_starts_with($lowerValue, 'http://') && !str_starts_with($lowerValue, 'https://') && !str_starts_with($lowerValue, 'mailto:')) {
+                if ($lowerValue !== '' && !$this->hasAllowedProtocol($lowerValue)) {
                     $node->removeAttribute($attrName);
                 }
             }
@@ -147,10 +148,21 @@ class HtmlSanitizer
             }
 
             // Enforce rel on links
-            if ($lower === 'a' && $tag === 'a') {
+            if ('a' === $tag) {
                 $node->setAttribute('rel', 'noopener noreferrer');
             }
         }
+    }
+
+    private function hasAllowedProtocol(string $lowerValue): bool
+    {
+        foreach (self::ALLOWED_PROTOCOLS as $protocol) {
+            if (str_starts_with($lowerValue, $protocol)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isDangerousUrl(string $lowerValue): bool

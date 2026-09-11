@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\CoverLetter;
 use App\Entity\User;
 use App\Repository\CoverLetterRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,8 +15,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/cover-letters', name: 'api_cover_letters_')]
 class CoverLetterController extends AbstractController
 {
-    public function __construct(private CoverLetterRepository $coverLetterRepository)
-    {
+    public function __construct(
+        private CoverLetterRepository $coverLetterRepository,
+        private EntityManagerInterface $entityManager,
+    ) {
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -44,8 +47,8 @@ class CoverLetterController extends AbstractController
         $letter->setName($name);
         $letter->setBody((string) ($data['body'] ?? ''));
 
-        $this->coverLetterRepository->getEntityManager()->persist($letter);
-        $this->coverLetterRepository->getEntityManager()->flush();
+        $this->entityManager->persist($letter);
+        $this->entityManager->flush();
 
         return $this->json($letter, Response::HTTP_CREATED, [], ['groups' => ['coverLetter.read']]);
     }
@@ -72,7 +75,7 @@ class CoverLetterController extends AbstractController
             $letter->setBody((string) $data['body']);
         }
 
-        $this->coverLetterRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($letter, 200, [], ['groups' => ['coverLetter.read']]);
     }
@@ -85,8 +88,8 @@ class CoverLetterController extends AbstractController
             return $this->json(['error' => 'Cover letter not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->coverLetterRepository->getEntityManager()->remove($letter);
-        $this->coverLetterRepository->getEntityManager()->flush();
+        $this->entityManager->remove($letter);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }

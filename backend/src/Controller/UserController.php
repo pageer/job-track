@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\UserRepository;
 use App\Service\UserSetupService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,7 +16,8 @@ class UserController extends AbstractController
 {
     public function __construct(
         private UserRepository $userRepository,
-        private UserSetupService $userSetupService
+        private UserSetupService $userSetupService,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -73,8 +75,8 @@ class UserController extends AbstractController
             return $this->json(['error' => 'You cannot delete your own account.'], Response::HTTP_CONFLICT);
         }
 
-        $this->userRepository->getEntityManager()->remove($user);
-        $this->userRepository->getEntityManager()->flush();
+        $this->entityManager->remove($user);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }

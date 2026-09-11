@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Enum\ResumeKind;
 use App\Repository\ResumeRepository;
 use App\Service\FileUploader;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +21,8 @@ class ResumeController extends AbstractController
 {
     public function __construct(
         private ResumeRepository $resumeRepository,
-        private FileUploader $fileUploader
+        private FileUploader $fileUploader,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -69,8 +71,8 @@ class ResumeController extends AbstractController
             $resume->setLinkUrl($linkUrl);
         }
 
-        $this->resumeRepository->getEntityManager()->persist($resume);
-        $this->resumeRepository->getEntityManager()->flush();
+        $this->entityManager->persist($resume);
+        $this->entityManager->flush();
 
         return $this->json($resume, Response::HTTP_CREATED, [], ['groups' => ['resume.read']]);
     }
@@ -101,7 +103,7 @@ class ResumeController extends AbstractController
             $resume->setLinkUrl($linkUrl);
         }
 
-        $this->resumeRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($resume, 200, [], ['groups' => ['resume.read']]);
     }
@@ -118,8 +120,8 @@ class ResumeController extends AbstractController
             $this->fileUploader->remove($resume->getFilePath());
         }
 
-        $this->resumeRepository->getEntityManager()->remove($resume);
-        $this->resumeRepository->getEntityManager()->flush();
+        $this->entityManager->remove($resume);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }

@@ -1,0 +1,18 @@
+includes:
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - src
+        - tests
+
+    excludePaths:
+        - tests/bootstrap.php
+
+    # Symfony's Request::get() etc. declare PHPDoc types (e.g. `non-falsy-string|false`)
+    # that do not reflect runtime values parsed from JSON/forms; do not treat
+    # comparisons against those PHPDoc types as always-false.
+    treatPhpDocTypesAsCertain: false

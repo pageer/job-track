@@ -11,6 +11,7 @@ use App\Repository\ApplicationRepository;
 use App\Repository\JobRepository;
 use App\Service\FileUploader;
 use App\Service\HtmlSanitizer;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,7 @@ class ApplicationController extends AbstractController
         private JobRepository $jobRepository,
         private FileUploader $fileUploader,
         private HtmlSanitizer $htmlSanitizer,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -82,8 +84,8 @@ class ApplicationController extends AbstractController
             $job->setStatus(JobStatus::Applied);
         }
 
-        $this->applicationRepository->getEntityManager()->persist($application);
-        $this->applicationRepository->getEntityManager()->flush();
+        $this->entityManager->persist($application);
+        $this->entityManager->flush();
 
         return $this->json($application, Response::HTTP_CREATED, [], ['groups' => ['application.read', 'interview.read']]);
     }
@@ -116,7 +118,7 @@ class ApplicationController extends AbstractController
             $application->setActionDate($this->parseDate($data['actionDate']));
         }
 
-        $this->applicationRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($application, 200, [], ['groups' => ['application.read', 'interview.read']]);
     }
@@ -133,8 +135,8 @@ class ApplicationController extends AbstractController
             $this->fileUploader->remove($application->getResumeFilePath());
         }
 
-        $this->applicationRepository->getEntityManager()->remove($application);
-        $this->applicationRepository->getEntityManager()->flush();
+        $this->entityManager->remove($application);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }
@@ -168,7 +170,7 @@ class ApplicationController extends AbstractController
         $application->setResumeFileSize($fileSize);
         $application->setResumeLinkUrl(null);
 
-        $this->applicationRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($application, 200, [], ['groups' => ['application.read', 'interview.read']]);
     }

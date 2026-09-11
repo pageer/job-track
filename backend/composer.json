@@ -66,6 +66,14 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "phpcs": "@php vendor/bin/phpcs",
+        "phpunit": "@php vendor/bin/phpunit",
+        "phpstan": "@php vendor/bin/phpstan analyse",
+        "check": [
+            "@phpcs",
+            "@phpunit",
+            "@phpstan"
         ]
     },
     "conflict": {
@@ -76,5 +84,13 @@
             "allow-contrib": false,
             "require": "7.4.*"
         }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-doctrine": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "squizlabs/php_codesniffer": "^3.11"
     }
 }

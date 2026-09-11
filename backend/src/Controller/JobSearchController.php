@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\JobSearch;
 use App\Entity\User;
 use App\Repository\JobSearchRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,8 +15,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/job-searches', name: 'api_job_searches_')]
 class JobSearchController extends AbstractController
 {
-    public function __construct(private JobSearchRepository $jobSearchRepository)
-    {
+    public function __construct(
+        private JobSearchRepository $jobSearchRepository,
+        private EntityManagerInterface $entityManager,
+    ) {
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -57,8 +60,8 @@ class JobSearchController extends AbstractController
         $search->setStartDate($startDate);
         $search->setEndDate($endDate);
 
-        $this->jobSearchRepository->getEntityManager()->persist($search);
-        $this->jobSearchRepository->getEntityManager()->flush();
+        $this->entityManager->persist($search);
+        $this->entityManager->flush();
 
         return $this->json($search, Response::HTTP_CREATED, [], ['groups' => ['jobSearch.read']]);
     }
@@ -108,7 +111,7 @@ class JobSearchController extends AbstractController
             $search->setEndDate($endDate);
         }
 
-        $this->jobSearchRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($search, 200, [], ['groups' => ['jobSearch.read']]);
     }
@@ -121,8 +124,8 @@ class JobSearchController extends AbstractController
             return $this->json(['error' => 'Job search not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->jobSearchRepository->getEntityManager()->remove($search);
-        $this->jobSearchRepository->getEntityManager()->flush();
+        $this->entityManager->remove($search);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }

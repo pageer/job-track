@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<ruleset name="job-track">
+    <description>Coding standards for the job-track backend.</description>
+
+    <arg name="basepath" value="."/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12"/>
+
+    <!-- The codebase already ships lines longer than the PSR12 120-char warning
+         limit; do not gate builds on this warning-only sniff. -->
+    <rule ref="Generic.Files.LineLength">
+        <severity>0</severity>
+    </rule>
+
+    <file>src</file>
+    <file>tests</file>
+
+    <exclude-pattern>tests/bootstrap.php</exclude-pattern>
+    <exclude-pattern>*/var/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/public/build/*</exclude-pattern>
+</ruleset>

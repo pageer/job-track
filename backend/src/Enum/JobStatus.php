@@ -10,6 +10,9 @@ enum JobStatus: string
     case Rejected = 'rejected';
     case Accepted = 'accepted';
 
+    /**
+     * @return list<string>
+     */
     public static function values(): array
     {
         return array_column(self::cases(), 'value');

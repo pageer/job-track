@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Enum\JobStatus;
 use App\Repository\JobRepository;
 use App\Repository\JobSearchRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +19,8 @@ class JobController extends AbstractController
 {
     public function __construct(
         private JobRepository $jobRepository,
-        private JobSearchRepository $jobSearchRepository
+        private JobSearchRepository $jobSearchRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -65,8 +67,8 @@ class JobController extends AbstractController
         $job->setDescriptionHtml($this->nullableString($data['descriptionHtml'] ?? null));
         $job->setDescriptionUrl($this->nullableString($data['descriptionUrl'] ?? null));
 
-        $this->jobRepository->getEntityManager()->persist($job);
-        $this->jobRepository->getEntityManager()->flush();
+        $this->entityManager->persist($job);
+        $this->entityManager->flush();
 
         return $this->json($job, Response::HTTP_CREATED, [], ['groups' => ['job.list']]);
     }
@@ -124,7 +126,7 @@ class JobController extends AbstractController
             $job->setDescriptionUrl($this->nullableString($data['descriptionUrl']));
         }
 
-        $this->jobRepository->getEntityManager()->flush();
+        $this->entityManager->flush();
 
         return $this->json($job, 200, [], ['groups' => ['job.read', 'application.read', 'interview.read']]);
     }
@@ -137,8 +139,8 @@ class JobController extends AbstractController
             return $this->json(['error' => 'Job not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $this->jobRepository->getEntityManager()->remove($job);
-        $this->jobRepository->getEntityManager()->flush();
+        $this->entityManager->remove($job);
+        $this->entityManager->flush();
 
         return $this->json(['success' => true]);
     }
