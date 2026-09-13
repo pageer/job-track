@@ -54,14 +54,20 @@ export default function UsersPage() {
       setForm(emptyForm);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create the user.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to create the user.',
+      );
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(user: User) {
-    if (!window.confirm(`Delete user "${user.name}" (${user.email})? This removes all their data.`)) {
+    if (
+      !window.confirm(
+        `Delete user "${user.name}" (${user.email})? This removes all their data.`,
+      )
+    ) {
       return;
     }
     setError(null);
@@ -69,7 +75,9 @@ export default function UsersPage() {
       await api.delete(`/api/users/${user.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the user.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to delete the user.',
+      );
     }
   }
 
@@ -79,7 +87,11 @@ export default function UsersPage() {
     <div className="page">
       <div className="page-header">
         <h1>Users</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setShowModal(true)}
+        >
           New user
         </button>
       </div>
@@ -103,14 +115,20 @@ export default function UsersPage() {
               <tr key={u.id}>
                 <td>
                   {u.name}
-                  {currentUser?.id === u.id && <span className="badge">you</span>}
+                  {currentUser?.id === u.id && (
+                    <span className="badge">you</span>
+                  )}
                 </td>
                 <td>{u.email}</td>
                 <td>{isAdmin(u.roles) ? 'Admin' : 'User'}</td>
                 <td>{formatDate(u.createdAt)}</td>
                 <td className="cell-actions">
                   {currentUser?.id !== u.id && (
-                    <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => void handleDelete(u)}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger-ghost"
+                      onClick={() => void handleDelete(u)}
+                    >
                       Delete
                     </button>
                   )}
@@ -151,13 +169,24 @@ export default function UsersPage() {
                 required
                 minLength={8}
               />
-              <small>At least 8 characters. New users get a "Job Search" automatically.</small>
+              <small>
+                At least 8 characters. New users get a &quot;Job Search&quot;
+                automatically.
+              </small>
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+              >
                 {saving ? 'Creating…' : 'Create user'}
               </button>
             </div>

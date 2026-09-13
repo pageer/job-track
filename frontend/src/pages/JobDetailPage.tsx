@@ -3,7 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type { Application, Interview, JobDetail, JobStatus } from '../types';
 import { JOB_STATUS_LABELS } from '../types';
-import { formatDateTime, formatFileSize, formatDate, toDateTimeInputValue } from '../utils';
+import {
+  formatDateTime,
+  formatFileSize,
+  formatDate,
+  toDateTimeInputValue,
+} from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
 import RichTextEditor from '../components/RichTextEditor';
@@ -22,7 +27,11 @@ interface InterviewFormState {
   notes: string;
 }
 
-const emptyInterviewForm: InterviewFormState = { date: '', interviewers: '', notes: '' };
+const emptyInterviewForm: InterviewFormState = {
+  date: '',
+  interviewers: '',
+  notes: '',
+};
 
 export default function JobDetailPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -47,8 +56,11 @@ export default function JobDetailPage() {
   const [showFullLetter, setShowFullLetter] = useState(false);
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
-  const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
-  const [interviewForm, setInterviewForm] = useState<InterviewFormState>(emptyInterviewForm);
+  const [editingInterview, setEditingInterview] = useState<Interview | null>(
+    null,
+  );
+  const [interviewForm, setInterviewForm] =
+    useState<InterviewFormState>(emptyInterviewForm);
   const [savingInterview, setSavingInterview] = useState(false);
 
   const load = useCallback(async () => {
@@ -58,7 +70,9 @@ export default function JobDetailPage() {
       const data = await api.get<JobDetail>(`/api/jobs/${jobId}`);
       setJob(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load the job.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to load the job.',
+      );
     } finally {
       setLoading(false);
     }
@@ -112,7 +126,9 @@ export default function JobDetailPage() {
       setShowEditJob(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update the job.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to update the job.',
+      );
     } finally {
       setSavingJob(false);
     }
@@ -127,7 +143,9 @@ export default function JobDetailPage() {
       await api.delete(`/api/jobs/${jobId}`);
       window.history.back();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the job.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to delete the job.',
+      );
     }
   }
 
@@ -137,7 +155,11 @@ export default function JobDetailPage() {
       await api.post<Application>(`/api/jobs/${jobId}/application`, {});
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create the application.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to create the application.',
+      );
     }
   }
 
@@ -152,7 +174,10 @@ export default function JobDetailPage() {
       if (resumeFile) {
         const fd = new FormData();
         fd.append('file', resumeFile);
-        await api.postForm<Application>(`/api/applications/${application.id}/resume-file`, fd);
+        await api.postForm<Application>(
+          `/api/applications/${application.id}/resume-file`,
+          fd,
+        );
       } else if (resumeLinkUrl.trim()) {
         await api.patch<Application>(`/api/applications/${application.id}`, {
           resumeKind: 'link',
@@ -164,22 +189,31 @@ export default function JobDetailPage() {
       setResumeLinkUrl('');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save the resume.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to save the resume.',
+      );
     } finally {
       setSavingResume(false);
     }
   }
 
   async function handleClearResume() {
-    if (!application || !window.confirm('Remove the resume from this application?')) {
+    if (
+      !application ||
+      !window.confirm('Remove the resume from this application?')
+    ) {
       return;
     }
     setError(null);
     try {
-      await api.patch<Application>(`/api/applications/${application.id}`, { resumeKind: null });
+      await api.patch<Application>(`/api/applications/${application.id}`, {
+        resumeKind: null,
+      });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to clear the resume.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to clear the resume.',
+      );
     }
   }
 
@@ -214,7 +248,11 @@ export default function JobDetailPage() {
       await api.delete(`/api/applications/${application.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the application.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to delete the application.',
+      );
     }
   }
 
@@ -244,7 +282,9 @@ export default function JobDetailPage() {
       setInterviewForm(emptyInterviewForm);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save the interview.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to save the interview.',
+      );
     } finally {
       setSavingInterview(false);
     }
@@ -259,7 +299,11 @@ export default function JobDetailPage() {
       await api.delete(`/api/interviews/${interview.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the interview.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to delete the interview.',
+      );
     }
   }
 
@@ -272,7 +316,7 @@ export default function JobDetailPage() {
             interviewers: interview.interviewers.join(', '),
             notes: interview.notes ?? '',
           }
-        : emptyInterviewForm
+        : emptyInterviewForm,
     );
     setShowInterviewModal(true);
   }
@@ -286,7 +330,10 @@ export default function JobDetailPage() {
           </Link>
           <h1>{job.title}</h1>
           <p className="page-subtitle">
-            {job.company} &middot; <span className={`badge badge-${job.status}`}>{JOB_STATUS_LABELS[job.status]}</span>{' '}
+            {job.company} &middot;{' '}
+            <span className={`badge badge-${job.status}`}>
+              {JOB_STATUS_LABELS[job.status]}
+            </span>{' '}
             &middot; added {formatDate(job.createdAt)}
           </p>
         </div>
@@ -307,7 +354,11 @@ export default function JobDetailPage() {
           >
             Edit
           </button>
-          <button type="button" className="btn btn-danger-ghost" onClick={() => void handleJobDelete()}>
+          <button
+            type="button"
+            className="btn btn-danger-ghost"
+            onClick={() => void handleJobDelete()}
+          >
             Delete
           </button>
         </div>
@@ -318,7 +369,10 @@ export default function JobDetailPage() {
       {job.descriptionHtml ? (
         <section className="panel">
           <h2>Description</h2>
-          <div className="rich-text" dangerouslySetInnerHTML={{ __html: job.descriptionHtml }} />
+          <div
+            className="rich-text"
+            dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
+          />
         </section>
       ) : null}
       {job.descriptionUrl ? (
@@ -334,7 +388,11 @@ export default function JobDetailPage() {
           <h2>Application</h2>
           {application && (
             <div className="btn-group">
-              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setShowResumeModal(true)}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setShowResumeModal(true)}
+              >
                 Resume
               </button>
               <button
@@ -349,7 +407,11 @@ export default function JobDetailPage() {
               >
                 Cover letter / notes
               </button>
-              <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => void handleApplicationDelete()}>
+              <button
+                type="button"
+                className="btn btn-sm btn-danger-ghost"
+                onClick={() => void handleApplicationDelete()}
+              >
                 Delete
               </button>
             </div>
@@ -359,7 +421,11 @@ export default function JobDetailPage() {
         {!application ? (
           <div className="empty-state">
             <p>No application for this job yet.</p>
-            <button type="button" className="btn btn-primary" onClick={() => void handleCreateApplication()}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void handleCreateApplication()}
+            >
               Create application
             </button>
           </div>
@@ -376,15 +442,24 @@ export default function JobDetailPage() {
               <span>
                 {application.resumeKind === 'file' ? (
                   <>
-                    <a href={`/api/applications/${application.id}/resume/download`} target="_blank" rel="noreferrer">
+                    <a
+                      href={`/api/applications/${application.id}/resume/download`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {application.resumeFileName}
                     </a>{' '}
                     <small>
-                      ({formatFileSize(application.resumeFileSize)}, {application.resumeMimeType})
+                      ({formatFileSize(application.resumeFileSize)},{' '}
+                      {application.resumeMimeType})
                     </small>
                   </>
                 ) : application.resumeKind === 'link' ? (
-                  <a href={application.resumeLinkUrl ?? '#'} target="_blank" rel="noreferrer">
+                  <a
+                    href={application.resumeLinkUrl ?? '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     {application.resumeLinkUrl}
                   </a>
                 ) : (
@@ -393,7 +468,11 @@ export default function JobDetailPage() {
                 {application.resumeKind && (
                   <>
                     {' '}
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => void handleClearResume()}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => void handleClearResume()}
+                    >
                       Clear
                     </button>
                   </>
@@ -406,7 +485,9 @@ export default function JobDetailPage() {
                 <div>
                   <div
                     className={`cover-letter-preview ${showFullLetter ? 'cover-letter-expanded' : 'cover-letter-collapsed'}`}
-                    dangerouslySetInnerHTML={{ __html: application.coverLetterHtml }}
+                    dangerouslySetInnerHTML={{
+                      __html: application.coverLetterHtml,
+                    }}
                   />
                   <button
                     type="button"
@@ -432,7 +513,11 @@ export default function JobDetailPage() {
         <div className="panel-header">
           <h2>Interviews</h2>
           {application && (
-            <button type="button" className="btn btn-sm btn-primary" onClick={() => openInterviewModal(null)}>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => openInterviewModal(null)}
+            >
               Add interview
             </button>
           )}
@@ -447,9 +532,15 @@ export default function JobDetailPage() {
             {application.interviews.map((interview) => (
               <li key={interview.id} className="card">
                 <div className="card-title-row">
-                  <span className="card-title">{formatDateTime(interview.date)}</span>
+                  <span className="card-title">
+                    {formatDateTime(interview.date)}
+                  </span>
                   <div className="btn-group">
-                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => openInterviewModal(interview)}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => openInterviewModal(interview)}
+                    >
                       Edit
                     </button>
                     <button
@@ -462,9 +553,13 @@ export default function JobDetailPage() {
                   </div>
                 </div>
                 {interview.interviewers.length > 0 && (
-                  <div className="card-meta">With {interview.interviewers.join(', ')}</div>
+                  <div className="card-meta">
+                    With {interview.interviewers.join(', ')}
+                  </div>
                 )}
-                {interview.notes && <p className="pre-wrap">{interview.notes}</p>}
+                {interview.notes && (
+                  <p className="pre-wrap">{interview.notes}</p>
+                )}
               </li>
             ))}
           </ul>
@@ -478,7 +573,9 @@ export default function JobDetailPage() {
               <span>Title</span>
               <input
                 value={jobForm.title}
-                onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, title: e.target.value })
+                }
                 required
                 autoFocus
               />
@@ -487,7 +584,9 @@ export default function JobDetailPage() {
               <span>Company</span>
               <input
                 value={jobForm.company}
-                onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, company: e.target.value })
+                }
                 required
               />
             </label>
@@ -495,7 +594,12 @@ export default function JobDetailPage() {
               <span>Status</span>
               <select
                 value={jobForm.status}
-                onChange={(e) => setJobForm({ ...jobForm, status: e.target.value as JobStatus })}
+                onChange={(e) =>
+                  setJobForm({
+                    ...jobForm,
+                    status: e.target.value as JobStatus,
+                  })
+                }
               >
                 {Object.entries(JOB_STATUS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -509,7 +613,9 @@ export default function JobDetailPage() {
               <input
                 type="url"
                 value={jobForm.descriptionUrl}
-                onChange={(e) => setJobForm({ ...jobForm, descriptionUrl: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, descriptionUrl: e.target.value })
+                }
               />
             </label>
             <label className="field">
@@ -517,14 +623,24 @@ export default function JobDetailPage() {
               <textarea
                 rows={5}
                 value={jobForm.descriptionHtml}
-                onChange={(e) => setJobForm({ ...jobForm, descriptionHtml: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, descriptionHtml: e.target.value })
+                }
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowEditJob(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowEditJob(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={savingJob}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingJob}
+              >
                 {savingJob ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -537,7 +653,10 @@ export default function JobDetailPage() {
           <form onSubmit={handleResumeSave} className="form">
             <label className="field">
               <span>Upload a file</span>
-              <input type="file" onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)} />
+              <input
+                type="file"
+                onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+              />
             </label>
             <div className="divider">or</div>
             <label className="field">
@@ -550,13 +669,19 @@ export default function JobDetailPage() {
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowResumeModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowResumeModal(false)}
+              >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={savingResume || (!resumeFile && !resumeLinkUrl.trim())}
+                disabled={
+                  savingResume || (!resumeFile && !resumeLinkUrl.trim())
+                }
               >
                 {savingResume ? 'Saving…' : 'Save resume'}
               </button>
@@ -566,7 +691,10 @@ export default function JobDetailPage() {
       )}
 
       {showLetterModal && application && (
-        <Modal title="Cover letter & notes" onClose={() => setShowLetterModal(false)}>
+        <Modal
+          title="Cover letter & notes"
+          onClose={() => setShowLetterModal(false)}
+        >
           <form onSubmit={handleLetterSave} className="form">
             <label className="field">
               <span>Action date (date you applied)</span>
@@ -586,13 +714,25 @@ export default function JobDetailPage() {
             </label>
             <label className="field">
               <span>Notes (optional)</span>
-              <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <textarea
+                rows={4}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowLetterModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowLetterModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={savingLetter}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingLetter}
+              >
                 {savingLetter ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -601,14 +741,19 @@ export default function JobDetailPage() {
       )}
 
       {showInterviewModal && application && (
-        <Modal title={editingInterview ? 'Edit interview' : 'Add interview'} onClose={() => setShowInterviewModal(false)}>
+        <Modal
+          title={editingInterview ? 'Edit interview' : 'Add interview'}
+          onClose={() => setShowInterviewModal(false)}
+        >
           <form onSubmit={handleInterviewSave} className="form">
             <label className="field">
               <span>Date and time</span>
               <input
                 type="datetime-local"
                 value={interviewForm.date}
-                onChange={(e) => setInterviewForm({ ...interviewForm, date: e.target.value })}
+                onChange={(e) =>
+                  setInterviewForm({ ...interviewForm, date: e.target.value })
+                }
                 required
                 autoFocus
               />
@@ -617,7 +762,12 @@ export default function JobDetailPage() {
               <span>Interviewers (comma separated)</span>
               <input
                 value={interviewForm.interviewers}
-                onChange={(e) => setInterviewForm({ ...interviewForm, interviewers: e.target.value })}
+                onChange={(e) =>
+                  setInterviewForm({
+                    ...interviewForm,
+                    interviewers: e.target.value,
+                  })
+                }
               />
             </label>
             <label className="field">
@@ -625,14 +775,24 @@ export default function JobDetailPage() {
               <textarea
                 rows={4}
                 value={interviewForm.notes}
-                onChange={(e) => setInterviewForm({ ...interviewForm, notes: e.target.value })}
+                onChange={(e) =>
+                  setInterviewForm({ ...interviewForm, notes: e.target.value })
+                }
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowInterviewModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowInterviewModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={savingInterview}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingInterview}
+              >
                 {savingInterview ? 'Saving…' : 'Save'}
               </button>
             </div>

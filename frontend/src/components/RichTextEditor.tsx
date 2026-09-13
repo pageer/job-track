@@ -10,7 +10,11 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-export default function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({
+  content,
+  onChange,
+  placeholder,
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -23,7 +27,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
       Image.configure({
         HTMLAttributes: { style: 'max-width:100%;height:auto' },
       }),
-      Placeholder.configure({ placeholder: placeholder ?? 'Write something...' }),
+      Placeholder.configure({
+        placeholder: placeholder ?? 'Write something...',
+      }),
     ],
     content,
     editorProps: {
@@ -43,7 +49,12 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
   function addLink() {
     const url = window.prompt('URL:');
     if (url) {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange('link')
+        .setLink({ href: url })
+        .run();
     }
   }
 
@@ -94,7 +105,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           type="button"
           title="Heading 1"
           className={`toolbar-btn ${editor.isActive('heading', { level: 1 }) ? 'active' : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
         >
           H1
         </button>
@@ -102,7 +115,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           type="button"
           title="Heading 2"
           className={`toolbar-btn ${editor.isActive('heading', { level: 2 }) ? 'active' : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
         >
           H2
         </button>
@@ -110,7 +125,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           type="button"
           title="Heading 3"
           className={`toolbar-btn ${editor.isActive('heading', { level: 3 }) ? 'active' : ''}`}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
         >
           H3
         </button>
@@ -140,10 +157,20 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           &ldquo; Quote
         </button>
         <span className="toolbar-sep" />
-        <button type="button" title="Insert link" className="toolbar-btn" onClick={addLink}>
+        <button
+          type="button"
+          title="Insert link"
+          className="toolbar-btn"
+          onClick={addLink}
+        >
           &#128279; Link
         </button>
-        <button type="button" title="Insert image" className="toolbar-btn" onClick={addImage}>
+        <button
+          type="button"
+          title="Insert image"
+          className="toolbar-btn"
+          onClick={addImage}
+        >
           &#128247; Image
         </button>
       </div>

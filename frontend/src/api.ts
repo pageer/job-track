@@ -35,7 +35,10 @@ interface RequestOptions {
   formData?: FormData;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const { method = 'GET', body, formData } = options;
 
   const headers = new Headers();
@@ -44,7 +47,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   } else if (body !== undefined) {
     headers.set('Content-Type', 'application/json');
   }
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && path !== '/api/auth/login' && csrfToken) {
+  if (
+    !['GET', 'HEAD', 'OPTIONS'].includes(method) &&
+    path !== '/api/auth/login' &&
+    csrfToken
+  ) {
     headers.set('X-CSRF-TOKEN', csrfToken);
   }
 
@@ -77,7 +84,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!response.ok) {
-    if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
+    if (
+      data &&
+      typeof data === 'object' &&
+      'error' in data &&
+      typeof (data as { error: unknown }).error === 'string'
+    ) {
       throw new ApiError(response.status, (data as { error: string }).error);
     }
     throw new ApiError(response.status, `Request failed (${response.status}).`);
@@ -88,8 +100,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
-  patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', body }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PATCH', body }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-  postForm: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', formData }),
+  postForm: <T>(path: string, formData: FormData) =>
+    request<T>(path, { method: 'POST', formData }),
 };

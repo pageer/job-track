@@ -18,7 +18,11 @@ export default function SetupPage() {
     try {
       await setup(name, email, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Setup failed. Please try again.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Setup failed. Please try again.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -28,16 +32,28 @@ export default function SetupPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-title">Welcome to Job Track</h1>
-        <p className="auth-subtitle">Create the first administrator account to get started.</p>
+        <p className="auth-subtitle">
+          Create the first administrator account to get started.
+        </p>
         <ErrorBanner message={error} />
         <form onSubmit={handleSubmit} className="form">
           <label className="field">
             <span>Your name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoFocus
+            />
           </label>
           <label className="field">
             <span>Email address</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </label>
           <label className="field">
             <span>Password</span>
@@ -50,7 +66,11 @@ export default function SetupPage() {
             />
             <small>At least 8 characters.</small>
           </label>
-          <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+          <button
+            type="submit"
+            className="btn btn-primary btn-block"
+            disabled={submitting}
+          >
             {submitting ? 'Creating…' : 'Create account'}
           </button>
         </form>

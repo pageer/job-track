@@ -29,7 +29,9 @@ export default function DashboardPage() {
       const data = await api.get<JobSearch[]>('/api/job-searches');
       setSearches(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load job searches.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to load job searches.',
+      );
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,11 @@ export default function DashboardPage() {
       setForm(emptyForm);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create the job search.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to create the job search.',
+      );
     } finally {
       setSaving(false);
     }
@@ -69,7 +75,11 @@ export default function DashboardPage() {
     <div className="page">
       <div className="page-header">
         <h1>Job Searches</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setShowModal(true)}
+        >
           New job search
         </button>
       </div>
@@ -80,7 +90,11 @@ export default function DashboardPage() {
       ) : searches.length === 0 ? (
         <div className="empty-state">
           <p>No job searches yet.</p>
-          <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+          >
             Create your first job search
           </button>
         </div>
@@ -121,7 +135,9 @@ export default function DashboardPage() {
               <input
                 type="date"
                 value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, startDate: e.target.value })
+                }
                 required
               />
             </label>
@@ -135,10 +151,18 @@ export default function DashboardPage() {
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+              >
                 {saving ? 'Creating…' : 'Create'}
               </button>
             </div>

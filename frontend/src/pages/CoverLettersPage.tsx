@@ -23,7 +23,9 @@ export default function CoverLettersPage() {
       const data = await api.get<CoverLetter[]>('/api/cover-letters');
       setLetters(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load cover letters.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to load cover letters.',
+      );
     } finally {
       setLoading(false);
     }
@@ -49,14 +51,21 @@ export default function CoverLettersPage() {
     setError(null);
     try {
       if (editing) {
-        await api.patch(`/api/cover-letters/${editing.id}`, { name: name.trim(), body });
+        await api.patch(`/api/cover-letters/${editing.id}`, {
+          name: name.trim(),
+          body,
+        });
       } else {
         await api.post('/api/cover-letters', { name: name.trim(), body });
       }
       setShowModal(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save the cover letter.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to save the cover letter.',
+      );
     } finally {
       setSaving(false);
     }
@@ -71,7 +80,11 @@ export default function CoverLettersPage() {
       await api.delete(`/api/cover-letters/${letter.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the cover letter.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to delete the cover letter.',
+      );
     }
   }
 
@@ -79,7 +92,11 @@ export default function CoverLettersPage() {
     <div className="page">
       <div className="page-header">
         <h1>Cover Letters</h1>
-        <button type="button" className="btn btn-primary" onClick={() => openModal(null)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => openModal(null)}
+        >
           New cover letter
         </button>
       </div>
@@ -90,7 +107,11 @@ export default function CoverLettersPage() {
       ) : letters.length === 0 ? (
         <div className="empty-state">
           <p>No cover letters yet.</p>
-          <button type="button" className="btn btn-primary" onClick={() => openModal(null)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => openModal(null)}
+          >
             Write your first cover letter
           </button>
         </div>
@@ -101,7 +122,11 @@ export default function CoverLettersPage() {
               <div className="card-title-row">
                 <span className="card-title">{letter.name}</span>
                 <div className="btn-group">
-                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => openModal(letter)}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => openModal(letter)}
+                  >
                     Edit
                   </button>
                   <button
@@ -113,15 +138,22 @@ export default function CoverLettersPage() {
                   </button>
                 </div>
               </div>
-              <div className="card-meta">Added {formatDate(letter.createdAt)}</div>
-              {letter.body && <p className="pre-wrap letter-preview">{letter.body}</p>}
+              <div className="card-meta">
+                Added {formatDate(letter.createdAt)}
+              </div>
+              {letter.body && (
+                <p className="pre-wrap letter-preview">{letter.body}</p>
+              )}
             </li>
           ))}
         </ul>
       )}
 
       {showModal && (
-        <Modal title={editing ? 'Edit cover letter' : 'New cover letter'} onClose={() => setShowModal(false)}>
+        <Modal
+          title={editing ? 'Edit cover letter' : 'New cover letter'}
+          onClose={() => setShowModal(false)}
+        >
           <form onSubmit={handleSave} className="form">
             <label className="field">
               <span>Name</span>
@@ -143,10 +175,18 @@ export default function CoverLettersPage() {
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+              >
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>

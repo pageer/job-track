@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type { JobSearchDetail, JobStatus } from '../types';
@@ -30,7 +36,7 @@ const emptyJobForm: JobFormState = {
 };
 
 const defaultActiveStatuses = new Set<JobStatus>(
-  JOB_STATUSES.filter((s) => s !== 'rejected')
+  JOB_STATUSES.filter((s) => s !== 'rejected'),
 );
 
 type SortKey = 'createdAt' | 'actionDate';
@@ -44,24 +50,36 @@ export default function SearchDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showEdit, setShowEdit] = useState(false);
-  const [editForm, setEditForm] = useState<EditFormState>({ name: '', startDate: '', endDate: '' });
+  const [editForm, setEditForm] = useState<EditFormState>({
+    name: '',
+    startDate: '',
+    endDate: '',
+  });
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobForm, setJobForm] = useState<JobFormState>(emptyJobForm);
   const [savingJob, setSavingJob] = useState(false);
 
-  const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(defaultActiveStatuses);
+  const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(
+    defaultActiveStatuses,
+  );
   const [sortBy, setSortBy] = useState<SortKey>('createdAt');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<JobSearchDetail>(`/api/job-searches/${searchId}`);
+      const data = await api.get<JobSearchDetail>(
+        `/api/job-searches/${searchId}`,
+      );
       setSearch(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load the job search.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to load the job search.',
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +108,11 @@ export default function SearchDetailPage() {
       setShowEdit(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to update the job search.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to update the job search.',
+      );
     } finally {
       setSavingEdit(false);
     }
@@ -105,7 +127,11 @@ export default function SearchDetailPage() {
       await api.delete(`/api/job-searches/${searchId}`);
       navigate('/');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the job search.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to delete the job search.',
+      );
     }
   }
 
@@ -135,7 +161,9 @@ export default function SearchDetailPage() {
       setJobForm(emptyJobForm);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create the job.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to create the job.',
+      );
     } finally {
       setSavingJob(false);
     }
@@ -161,7 +189,7 @@ export default function SearchDetailPage() {
     setActiveStatuses(defaultActiveStatuses);
   }
 
-  const jobs = search?.jobs ?? [];
+  const jobs = useMemo(() => search?.jobs ?? [], [search]);
 
   const jobCounts = jobs.reduce<Record<string, number>>((acc, j) => {
     acc[j.status] = (acc[j.status] ?? 0) + 1;
@@ -195,7 +223,9 @@ export default function SearchDetailPage() {
           {search && (
             <p className="page-subtitle">
               {formatDate(search.startDate)}
-              {search.endDate ? ` — ${formatDate(search.endDate)}` : ' — ongoing'}
+              {search.endDate
+                ? ` — ${formatDate(search.endDate)}`
+                : ' — ongoing'}
             </p>
           )}
         </div>
@@ -216,7 +246,11 @@ export default function SearchDetailPage() {
               >
                 Edit
               </button>
-              <button type="button" className="btn btn-danger-ghost" onClick={() => void handleDeleteSearch()}>
+              <button
+                type="button"
+                className="btn btn-danger-ghost"
+                onClick={() => void handleDeleteSearch()}
+              >
                 Delete
               </button>
             </>
@@ -242,10 +276,18 @@ export default function SearchDetailPage() {
               </button>
             );
           })}
-          <button type="button" className="btn btn-sm btn-ghost" onClick={selectAllStatuses}>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={selectAllStatuses}
+          >
             All
           </button>
-          <button type="button" className="btn btn-sm btn-ghost" onClick={selectDefaultStatuses}>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={selectDefaultStatuses}
+          >
             Default
           </button>
         </div>
@@ -275,7 +317,11 @@ export default function SearchDetailPage() {
               </button>
             </div>
           )}
-          <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowJobModal(true)}
+          >
             Add job
           </button>
         </div>
@@ -288,7 +334,11 @@ export default function SearchDetailPage() {
           {jobs.length === 0 ? (
             <>
               <p>No jobs in this search yet.</p>
-              <button type="button" className="btn btn-primary" onClick={() => setShowJobModal(true)}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowJobModal(true)}
+              >
                 Add your first job
               </button>
             </>
@@ -303,12 +353,16 @@ export default function SearchDetailPage() {
               <Link to={`/jobs/${job.id}`} className="card card-link">
                 <div className="card-title-row">
                   <span className="card-title">{job.company}</span>
-                  <span className={`badge badge-${job.status}`}>{JOB_STATUS_LABELS[job.status]}</span>
+                  <span className={`badge badge-${job.status}`}>
+                    {JOB_STATUS_LABELS[job.status]}
+                  </span>
                 </div>
                 <div className="card-meta">{job.title}</div>
                 <div className="card-dates">
                   <span>Added {formatDate(job.createdAt)}</span>
-                  {job.actionDate && <span>Applied {formatDate(job.actionDate)}</span>}
+                  {job.actionDate && (
+                    <span>Applied {formatDate(job.actionDate)}</span>
+                  )}
                 </div>
               </Link>
             </li>
@@ -323,7 +377,9 @@ export default function SearchDetailPage() {
               <span>Name</span>
               <input
                 value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
                 required
                 autoFocus
               />
@@ -333,7 +389,9 @@ export default function SearchDetailPage() {
               <input
                 type="date"
                 value={editForm.startDate}
-                onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, startDate: e.target.value })
+                }
                 required
               />
             </label>
@@ -343,14 +401,24 @@ export default function SearchDetailPage() {
                 type="date"
                 value={editForm.endDate}
                 min={editForm.startDate || undefined}
-                onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, endDate: e.target.value })
+                }
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowEdit(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowEdit(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={savingEdit}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingEdit}
+              >
                 {savingEdit ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -365,7 +433,9 @@ export default function SearchDetailPage() {
               <span>Title</span>
               <input
                 value={jobForm.title}
-                onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, title: e.target.value })
+                }
                 required
                 autoFocus
               />
@@ -374,7 +444,9 @@ export default function SearchDetailPage() {
               <span>Company</span>
               <input
                 value={jobForm.company}
-                onChange={(e) => setJobForm({ ...jobForm, company: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, company: e.target.value })
+                }
                 required
               />
             </label>
@@ -382,7 +454,12 @@ export default function SearchDetailPage() {
               <span>Status</span>
               <select
                 value={jobForm.status}
-                onChange={(e) => setJobForm({ ...jobForm, status: e.target.value as JobStatus | '' })}
+                onChange={(e) =>
+                  setJobForm({
+                    ...jobForm,
+                    status: e.target.value as JobStatus | '',
+                  })
+                }
               >
                 <option value="">Investigating (default)</option>
                 {Object.entries(JOB_STATUS_LABELS).map(([value, label]) => (
@@ -397,7 +474,9 @@ export default function SearchDetailPage() {
               <input
                 type="url"
                 value={jobForm.descriptionUrl}
-                onChange={(e) => setJobForm({ ...jobForm, descriptionUrl: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, descriptionUrl: e.target.value })
+                }
               />
             </label>
             <label className="field">
@@ -405,14 +484,24 @@ export default function SearchDetailPage() {
               <textarea
                 rows={5}
                 value={jobForm.descriptionHtml}
-                onChange={(e) => setJobForm({ ...jobForm, descriptionHtml: e.target.value })}
+                onChange={(e) =>
+                  setJobForm({ ...jobForm, descriptionHtml: e.target.value })
+                }
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowJobModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowJobModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={savingJob}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingJob}
+              >
                 {savingJob ? 'Creating…' : 'Add job'}
               </button>
             </div>

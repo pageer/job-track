@@ -33,7 +33,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         </nav>
         <div className="user-menu">
           <span className="user-name">{user?.name}</span>
-          <button type="button" className="btn btn-sm btn-ghost" onClick={() => void logout()}>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => void logout()}
+          >
             Log out
           </button>
         </div>

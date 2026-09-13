@@ -23,17 +23,21 @@ php -S 127.0.0.1:8000 -t public          # Symfony dev server
 # 3. Frontend
 cd frontend && npm install
 npm run build                            # runs tsc --noEmit, then writes ../backend/public/build
+npm run check                            # format:check → lint → test → build
 npm run dev                              # Vite on 5173, /api proxied to 8000
 ```
 
 - `backend/compose.yaml` + `compose.override.yaml` are unused Symfony-generated Postgres stubs. Ignore them; the real DB compose file is the repo-root `docker-compose.yml`.
 
-## QA (backend only)
+## QA
 
-- No CI and no frontend linter. Frontend typecheck gate is `npm run build` (runs `tsc --noEmit`).
-- Backend checks run via Composer scripts: `composer check` runs **phpcs → phpunit → phpstan** in that order; each also runs standalone (`composer phpcs`, `composer phpunit`, `composer phpstan`).
-- Tools: PHPUnit 11 (`phpunit.dist.xml`, tests in `backend/tests/`, service/entity unit tests), PHPStan level 6 + Symfony/Doctrine/PHPUnit extensions (`phpstan.neon`), PHPCS PSR-12 (`phpcs.xml.dist`, only `src/` + `tests/`; long-line sniff disabled; `tests/bootstrap.php` excluded).
-- Verify PHP changes by running `composer check`, then the Symfony server + endpoint hit.
+No CI. Backend checks run via Composer scripts: `composer check` runs **phpcs → phpunit → phpstan** in that order; each also runs standalone (`composer phpcs`, `composer phpunit`, `composer phpstan`).
+
+Frontend checks run via npm scripts: `npm run check` runs **prettier → eslint → vitest → build** (build runs `tsc --noEmit` + `vite build`). Standalone: `npm run lint` (ESLint 9 flat config, `eslint.config.js`), `npm run format` / `npm run format:check` (Prettier), `npm run test` / `npm run test:watch` (Vitest). Vitest uses jsdom + Testing Library; config lives in `vite.config.ts` (`test` block), setup in `src/test/setup.ts`, tests co-located as `*.test.ts(x)`.
+
+- ESLint pulls in `react-hooks` v7 recommended-latest rules. `react-hooks/set-state-in-effect` is deliberately downgraded to `warn` because it flags the codebase's canonical async fetch-in-effect pattern.
+- Backend tools: PHPUnit 11 (`phpunit.dist.xml`, tests in `backend/tests/`, service/entity unit tests), PHPStan level 6 + Symfony/Doctrine/PHPUnit extensions (`phpstan.neon`), PHPCS PSR-12 (`phpcs.xml.dist`, only `src/` + `tests/`; long-line sniff disabled; `tests/bootstrap.php` excluded).
+- Verify PHP changes by running `composer check`, then the Symfony server + endpoint hit. Verify frontend changes by running `npm run check`.
 
 ## Auth / API contract (do not break)
 

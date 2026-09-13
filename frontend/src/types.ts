@@ -1,4 +1,5 @@
-export type JobStatus = 'investigating' | 'applied' | 'in_progress' | 'rejected' | 'accepted';
+export type JobStatus =
+  'investigating' | 'applied' | 'in_progress' | 'rejected' | 'accepted';
 export type ResumeKind = 'file' | 'link';
 
 export interface User {

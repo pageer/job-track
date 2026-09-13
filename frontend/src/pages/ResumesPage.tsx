@@ -28,7 +28,9 @@ export default function ResumesPage() {
       const data = await api.get<Resume[]>('/api/resumes');
       setResumes(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to load resumes.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to load resumes.',
+      );
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,9 @@ export default function ResumesPage() {
       setForm(emptyForm);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create the resume.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to create the resume.',
+      );
     } finally {
       setSaving(false);
     }
@@ -77,17 +81,25 @@ export default function ResumesPage() {
       await api.delete(`/api/resumes/${resume.id}`);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to delete the resume.');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to delete the resume.',
+      );
     }
   }
 
-  const canSubmit = form.name.trim().length > 0 && (form.file !== null || form.linkUrl.trim().length > 0);
+  const canSubmit =
+    form.name.trim().length > 0 &&
+    (form.file !== null || form.linkUrl.trim().length > 0);
 
   return (
     <div className="page">
       <div className="page-header">
         <h1>Resumes</h1>
-        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setShowModal(true)}
+        >
           New resume
         </button>
       </div>
@@ -98,7 +110,11 @@ export default function ResumesPage() {
       ) : resumes.length === 0 ? (
         <div className="empty-state">
           <p>No resumes yet.</p>
-          <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+          >
             Add your first resume
           </button>
         </div>
@@ -109,7 +125,11 @@ export default function ResumesPage() {
               <div className="card-title-row">
                 <span className="card-title">{r.name}</span>
                 <div className="btn-group">
-                  <button type="button" className="btn btn-sm btn-danger-ghost" onClick={() => void handleDelete(r)}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger-ghost"
+                    onClick={() => void handleDelete(r)}
+                  >
                     Delete
                   </button>
                 </div>
@@ -117,7 +137,11 @@ export default function ResumesPage() {
               <div className="card-meta">
                 {r.kind === 'file' ? (
                   <>
-                    <a href={`/api/resumes/${r.id}/download`} target="_blank" rel="noreferrer">
+                    <a
+                      href={`/api/resumes/${r.id}/download`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {r.fileName}
                     </a>{' '}
                     ({formatFileSize(r.fileSize)})
@@ -168,10 +192,18 @@ export default function ResumesPage() {
               />
             </label>
             <div className="form-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowModal(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving || !canSubmit}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving || !canSubmit}
+              >
                 {saving ? 'Creating…' : 'Create'}
               </button>
             </div>

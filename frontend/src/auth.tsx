@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import { api, getCsrfToken, setCsrfToken } from './api';
 import type { User } from './types';
 
@@ -58,7 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const resp = await api.post<AuthResponse>('/api/auth/login', { email, password });
+    const resp = await api.post<AuthResponse>('/api/auth/login', {
+      email,
+      password,
+    });
     setCsrfToken(resp.csrfToken);
     setUser(resp.user);
     setNeedsSetup(false);
@@ -69,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post<{ user: User }>('/api/setup', { name, email, password });
       await login(email, password);
     },
-    [login]
+    [login],
   );
 
   const logout = useCallback(async () => {
@@ -84,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <AuthContext.Provider value={{ user, needsSetup, loading, refresh, login, setup, logout }}>
+    <AuthContext.Provider
+      value={{ user, needsSetup, loading, refresh, login, setup, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
