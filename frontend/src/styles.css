@@ -503,6 +503,27 @@ a:hover {
   resize: vertical;
 }
 
+.check-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.check-field input[type='checkbox'] {
+  width: auto;
+  margin-top: 0.15rem;
+  accent-color: var(--color-primary);
+}
+
+.check-field small {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

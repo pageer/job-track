@@ -12,6 +12,7 @@ import { JOB_STATUSES, JOB_STATUS_LABELS } from '../types';
 import { formatDate, toDateInputValue } from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
+import AiImportModal from '../components/AiImportModal';
 
 interface EditFormState {
   name: string;
@@ -60,6 +61,8 @@ export default function SearchDetailPage() {
   const [showJobModal, setShowJobModal] = useState(false);
   const [jobForm, setJobForm] = useState<JobFormState>(emptyJobForm);
   const [savingJob, setSavingJob] = useState(false);
+
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(
     defaultActiveStatuses,
@@ -319,6 +322,13 @@ export default function SearchDetailPage() {
           )}
           <button
             type="button"
+            className="btn btn-ghost"
+            onClick={() => setShowAiImport(true)}
+          >
+            Auto-fill from message
+          </button>
+          <button
+            type="button"
             className="btn btn-primary"
             onClick={() => setShowJobModal(true)}
           >
@@ -507,6 +517,15 @@ export default function SearchDetailPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showAiImport && searchId && (
+        <AiImportModal
+          intent="job"
+          jobSearchId={searchId}
+          onClose={() => setShowAiImport(false)}
+          onSaved={() => void load()}
+        />
       )}
     </div>
   );

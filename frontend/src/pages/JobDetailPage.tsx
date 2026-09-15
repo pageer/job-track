@@ -12,6 +12,7 @@ import {
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
 import RichTextEditor from '../components/RichTextEditor';
+import AiImportModal from '../components/AiImportModal';
 
 interface JobFormState {
   title: string;
@@ -62,6 +63,8 @@ export default function JobDetailPage() {
   const [interviewForm, setInterviewForm] =
     useState<InterviewFormState>(emptyInterviewForm);
   const [savingInterview, setSavingInterview] = useState(false);
+
+  const [showAiImport, setShowAiImport] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -512,15 +515,24 @@ export default function JobDetailPage() {
       <section className="panel">
         <div className="panel-header">
           <h2>Interviews</h2>
-          {application && (
+          <div className="btn-group">
             <button
               type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => openInterviewModal(null)}
+              className="btn btn-sm btn-ghost"
+              onClick={() => setShowAiImport(true)}
             >
-              Add interview
+              Auto-fill from message
             </button>
-          )}
+            {application && (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() => openInterviewModal(null)}
+              >
+                Add interview
+              </button>
+            )}
+          </div>
         </div>
 
         {!application ? (
@@ -798,6 +810,16 @@ export default function JobDetailPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showAiImport && (
+        <AiImportModal
+          intent="interview"
+          jobId={jobId ?? ''}
+          applicationId={application?.id ?? null}
+          onClose={() => setShowAiImport(false)}
+          onSaved={() => void load()}
+        />
       )}
     </div>
   );
