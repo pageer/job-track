@@ -11,6 +11,7 @@ Job application tracker. Two apps: Symfony 7.4 API backend (`backend/`) + React 
 - Controllers/commands persist via an injected `EntityManagerInterface`; do NOT call `$repo->getEntityManager()` from outside a repository (protected on `EntityRepository` in ORM 3 — PHPStan enforces this).
 - Root `package-lock.json` is an empty stub and gitignored. Real lockfiles: `frontend/package-lock.json`, `backend/composer.lock`.
 - Root `tags` is ctags output (gitignored).
+- `.env` files are **gitignored everywhere** (root, `backend/`, `frontend/`). Templates live in each dir's `.env.example`. `SYMFONY` requires an actual `backend/.env` to boot — first-time setup must copy `backend/.env.example` → `backend/.env`; deploy.sh and the docker image create it automatically if missing. Keep real secrets (DB creds, `OPENROUTER_API_KEY`) in the gitignored `backend/.env.local`.
 
 ## Commands (dev, in order)
 
@@ -18,7 +19,9 @@ Job application tracker. Two apps: Symfony 7.4 API backend (`backend/`) + React 
 # 1. MySQL (root docker-compose.yml): port 3307, db job_track, user/pass app/app
 docker compose up -d db
 # 2. Backend
-cd backend && composer install && php bin/console doctrine:migrations:migrate --no-interaction
+cd backend
+copy .env.example .env                      # required once; .env is gitignored (Windows). On Unix: cp .env.example .env
+composer install && php bin/console doctrine:migrations:migrate --no-interaction
 php -S 127.0.0.1:8000 -t public          # Symfony dev server
 # 3. Frontend
 cd frontend && npm install

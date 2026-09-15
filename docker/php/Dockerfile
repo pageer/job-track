@@ -24,6 +24,7 @@ COPY --from=frontend /src/backend /var/www/html
 
 RUN chown -R www-data:www-data /var/www/html \
     && cd /var/www/html \
+    && [ -f .env ] || cp .env.example .env \
     && COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && rm -rf var/cache/*
 

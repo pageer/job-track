@@ -53,13 +53,20 @@ echo "Pulling latest code from origin..."
 git pull origin "$(git rev-parse --abbrev-ref HEAD)" || fail "git pull failed."
 ok "Code up to date."
 
-# 3. PHP dependencies
+# 3. Environment files (.env is gitignored; create it from the template if absent)
+
+if [ ! -f "$BACKEND/.env" ]; then
+  cp "$BACKEND/.env.example" "$BACKEND/.env"
+  ok "Created backend/.env from .env.example (secrets live in .env.local)."
+fi
+
+# 4. PHP dependencies
 
 cd "$BACKEND"
 composer install --no-dev --optimize-autoloader --no-interaction || fail "Composer install failed."
 ok "PHP dependencies installed."
 
-# 4. Frontend build
+# 5. Frontend build
 
 if [ "$SKIP_BUILD" = false ]; then
   cd "$FRONTEND"
@@ -70,7 +77,7 @@ else
   warn "Skipping frontend build."
 fi
 
-# 5. Database migrations
+# 6. Database migrations
 
 if [ "$SKIP_MIGRATE" = false ]; then
   cd "$BACKEND"
@@ -80,14 +87,14 @@ else
   warn "Skipping database migrations."
 fi
 
-# 6. Cache warm
+# 7. Cache warm
 
 cd "$BACKEND"
 php bin/console cache:clear --env=prod --no-debug || warn "Cache clear failed (non-fatal)."
 php bin/console cache:warmup --env=prod --no-debug 2>/dev/null || true
 ok "Cache warmed."
 
-# 7. Fix permissions on var/ (shared hosting often needs this)
+# 8. Fix permissions on var/ (shared hosting often needs this)
 
 if [ -d "$BACKEND/var" ]; then
   chmod -R 775 "$BACKEND/var" 2>/dev/null || true
