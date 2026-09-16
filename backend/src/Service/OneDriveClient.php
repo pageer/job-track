@@ -70,7 +70,7 @@ class OneDriveClient
             'code_challenge_method' => 'S256',
         ]);
 
-        return sprintf(self::AUTH_BASE, $this->tenant).'/authorize?'.$params;
+        return sprintf(self::AUTH_BASE, $this->tenant) . '/authorize?' . $params;
     }
 
     /**
@@ -133,7 +133,7 @@ class OneDriveClient
     {
         $encoded = implode('/', array_map('rawurlencode', explode('/', trim($this->folderPath, '/'))));
 
-        $url = self::GRAPH_BASE.'/me/drive/root'.('' === $encoded ? '/children' : ':/'.$encoded.':/children');
+        $url = self::GRAPH_BASE . '/me/drive/root' . ('' === $encoded ? '/children' : ':/' . $encoded . ':/children');
         $url .= '?$select=id,name,size,file,lastModifiedDateTime,webUrl&$top=500';
 
         $data = $this->get($url, $accessToken);
@@ -163,7 +163,7 @@ class OneDriveClient
      */
     public function getAccountInfo(string $accessToken): array
     {
-        $data = $this->get(self::GRAPH_BASE.'/me?$select=displayName,mail,userPrincipalName', $accessToken);
+        $data = $this->get(self::GRAPH_BASE . '/me?$select=displayName,mail,userPrincipalName', $accessToken);
 
         return [
             'displayName' => isset($data['displayName']) ? (string) $data['displayName'] : null,
@@ -178,7 +178,7 @@ class OneDriveClient
      */
     private function post(string $endpoint, array $body): array
     {
-        $response = $this->httpClient->request('POST', sprintf(self::AUTH_BASE, $this->tenant).$endpoint, [
+        $response = $this->httpClient->request('POST', sprintf(self::AUTH_BASE, $this->tenant) . $endpoint, [
             'body' => $body,
             'timeout' => self::DEFAULT_TIMEOUT,
         ]);
@@ -238,7 +238,7 @@ class OneDriveClient
         try {
             $content = $response->getContent(false);
         } catch (TransportExceptionInterface $e) {
-            throw new OneDriveException('Could not reach Microsoft: '.$e->getMessage(), false, $e);
+            throw new OneDriveException('Could not reach Microsoft: ' . $e->getMessage(), false, $e);
         }
 
         $data = json_decode($content, true);

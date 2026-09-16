@@ -206,11 +206,11 @@ class OneDriveController extends AbstractController
     {
         $override = $this->oneDriveClient->getRedirectUri();
 
-        return '' !== $override ? $override : $request->getSchemeAndHttpHost().'/api/onedrive/callback';
+        return '' !== $override ? $override : $request->getSchemeAndHttpHost() . '/api/onedrive/callback';
     }
 
     private function redirectFlag(string $flag): RedirectResponse
     {
-        return $this->redirect('/resumes?onedrive='.$flag);
+        return $this->redirect('/resumes?onedrive=' . $flag);
     }
 }
