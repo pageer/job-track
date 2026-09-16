@@ -33,6 +33,12 @@ export interface JobSummary {
   createdAt: string;
 }
 
+export interface JobNote {
+  id: number;
+  content: string;
+  createdAt: string;
+}
+
 export interface Interview {
   id: number;
   date: string;
@@ -62,6 +68,7 @@ export interface JobDetail extends JobSummary {
   descriptionHtml: string | null;
   descriptionUrl: string | null;
   application: Application | null;
+  notes: JobNote[];
 }
 
 export interface Resume {

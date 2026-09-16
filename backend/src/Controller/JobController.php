@@ -81,7 +81,7 @@ class JobController extends AbstractController
             return $this->json(['error' => 'Job not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        return $this->json($job, 200, [], ['groups' => ['job.read', 'application.read', 'interview.read']]);
+        return $this->json($job, 200, [], ['groups' => ['job.read', 'application.read', 'interview.read', 'jobNote.read']]);
     }
 
     #[Route('/api/jobs/{id}', name: 'api_jobs_update', methods: ['PATCH'])]
@@ -128,7 +128,7 @@ class JobController extends AbstractController
 
         $this->entityManager->flush();
 
-        return $this->json($job, 200, [], ['groups' => ['job.read', 'application.read', 'interview.read']]);
+        return $this->json($job, 200, [], ['groups' => ['job.read', 'application.read', 'interview.read', 'jobNote.read']]);
     }
 
     #[Route('/api/jobs/{id}', name: 'api_jobs_delete', methods: ['DELETE'])]

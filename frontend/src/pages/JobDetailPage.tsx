@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
-import type { Application, Interview, JobDetail, JobStatus } from '../types';
+import type {
+  Application,
+  Interview,
+  JobDetail,
+  JobNote,
+  JobStatus,
+} from '../types';
 import { JOB_STATUS_LABELS } from '../types';
 import {
   formatDateTime,
@@ -9,6 +15,7 @@ import {
   formatDate,
   toDateTimeInputValue,
 } from '../utils';
+import { buildTimeline } from '../timeline';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
 import RichTextEditor from '../components/RichTextEditor';
@@ -64,6 +71,11 @@ export default function JobDetailPage() {
     useState<InterviewFormState>(emptyInterviewForm);
   const [savingInterview, setSavingInterview] = useState(false);
 
+  const [savingNote, setSavingNote] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [editingNote, setEditingNote] = useState<JobNote | null>(null);
+  const [noteModalContent, setNoteModalContent] = useState('');
+
   const [showAiImport, setShowAiImport] = useState(false);
 
   const load = useCallback(async () => {
@@ -105,6 +117,7 @@ export default function JobDetailPage() {
   }
 
   const application = job.application;
+  const timeline = buildTimeline(job);
 
   async function handleJobEditSubmit(e: FormEvent) {
     e.preventDefault();
@@ -324,6 +337,54 @@ export default function JobDetailPage() {
     setShowInterviewModal(true);
   }
 
+  async function handleNoteSave(e: FormEvent) {
+    e.preventDefault();
+    const content = noteModalContent.trim();
+    if (!content) {
+      return;
+    }
+    setSavingNote(true);
+    setError(null);
+    try {
+      if (editingNote) {
+        await api.patch(`/api/job-notes/${editingNote.id}`, { content });
+      } else {
+        await api.post(`/api/jobs/${jobId}/notes`, { content });
+      }
+      setShowNoteModal(false);
+      setEditingNote(null);
+      setNoteModalContent('');
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to save the note.',
+      );
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  function openNoteModal(note: JobNote | null) {
+    setEditingNote(note);
+    setNoteModalContent(note?.content ?? '');
+    setShowNoteModal(true);
+  }
+
+  async function handleNoteDelete(note: JobNote) {
+    if (!window.confirm('Delete this note?')) {
+      return;
+    }
+    setError(null);
+    try {
+      await api.delete(`/api/job-notes/${note.id}`);
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to delete the note.',
+      );
+    }
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -514,6 +575,51 @@ export default function JobDetailPage() {
 
       <section className="panel">
         <div className="panel-header">
+          <h2>Job notes</h2>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => openNoteModal(null)}
+          >
+            Add note
+          </button>
+        </div>
+        {job.notes.length === 0 ? (
+          <p className="muted">No notes yet.</p>
+        ) : (
+          <ul className="card-list">
+            {job.notes.map((note) => (
+              <li key={note.id} className="card">
+                <div className="card-title-row">
+                  <span className="card-meta">
+                    Added {formatDateTime(note.createdAt)}
+                  </span>
+                  <div className="btn-group">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => openNoteModal(note)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger-ghost"
+                      onClick={() => void handleNoteDelete(note)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="card-body pre-wrap">{note.content}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
           <h2>Interviews</h2>
           <div className="btn-group">
             <button
@@ -575,6 +681,38 @@ export default function JobDetailPage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <h2>Timeline</h2>
+        </div>
+        {timeline.length === 0 ? (
+          <p className="muted">No notes or interviews yet.</p>
+        ) : (
+          <ol className="timeline">
+            {timeline.map((entry) => (
+              <li key={entry.key} className="timeline-item">
+                <div className="timeline-head">
+                  <span
+                    className={
+                      entry.kind === 'interview'
+                        ? 'badge badge-in_progress'
+                        : 'badge badge-applied'
+                    }
+                  >
+                    {entry.kind === 'interview' ? 'Interview' : 'Note'}
+                  </span>
+                  <span className="timeline-date">
+                    {formatDateTime(entry.date)}
+                  </span>
+                </div>
+                <div className="timeline-title">{entry.title}</div>
+                {entry.body && <p className="pre-wrap">{entry.body}</p>}
+              </li>
+            ))}
+          </ol>
         )}
       </section>
 
@@ -806,6 +944,41 @@ export default function JobDetailPage() {
                 disabled={savingInterview}
               >
                 {savingInterview ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {showNoteModal && (
+        <Modal
+          title={editingNote ? 'Edit note' : 'New note'}
+          onClose={() => setShowNoteModal(false)}
+        >
+          <form onSubmit={(e) => void handleNoteSave(e)} className="form">
+            <label className="field">
+              <span>Note</span>
+              <textarea
+                rows={5}
+                value={noteModalContent}
+                onChange={(e) => setNoteModalContent(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowNoteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={savingNote || noteModalContent.trim() === ''}
+              >
+                {savingNote ? 'Saving…' : 'Save'}
               </button>
             </div>
           </form>

@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Enum\JobStatus;
 use App\Repository\JobRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -54,9 +56,18 @@ class Job
     #[Groups(['job.read'])]
     private ?Application $application = null;
 
+    /**
+     * @var Collection<int, JobNote>
+     */
+    #[ORM\OneToMany(mappedBy: 'job', targetEntity: JobNote::class, orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    #[Groups(['job.read'])]
+    private Collection $notes;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->notes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -160,6 +171,36 @@ class Job
     public function hasApplication(): bool
     {
         return null !== $this->application;
+    }
+
+    /**
+     * @return Collection<int, JobNote>
+     */
+    public function getNotes(): Collection
+    {
+        return $this->notes;
+    }
+
+    public function addNote(JobNote $note): static
+    {
+        if (!$this->notes->contains($note)) {
+            $this->notes->add($note);
+            $note->setJob($this);
+        }
+
+        return $this;
+    }
+
+    public function removeNote(JobNote $note): static
+    {
+        if ($this->notes->removeElement($note)) {
+            // set the owning side to null (unless already changed)
+            if ($note->getJob() === $this) {
+                $note->setJob(null);
+            }
+        }
+
+        return $this;
     }
 
     #[Groups(['job.list', 'job.read'])]

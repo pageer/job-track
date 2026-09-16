@@ -445,6 +445,51 @@ a:hover {
   margin-top: 0.35rem;
 }
 
+.card-body {
+  margin-top: 0.4rem;
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  border-left: 2px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timeline-item {
+  position: relative;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -1.35rem;
+  top: 0.4rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.timeline-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.timeline-date {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.timeline-title {
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
