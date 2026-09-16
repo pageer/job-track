@@ -75,6 +75,23 @@ export interface Resume {
   createdAt: string;
 }
 
+export interface OneDriveFile {
+  id: string;
+  name: string;
+  size: number | null;
+  lastModifiedDateTime: string | null;
+  webUrl: string;
+  mimeType: string | null;
+}
+
+export interface OneDriveStatus {
+  clientConfigured: boolean;
+  connected: boolean;
+  accountEmail: string | null;
+  accountDisplayName: string | null;
+  folderPath: string;
+}
+
 export interface CoverLetter {
   id: number;
   name: string;

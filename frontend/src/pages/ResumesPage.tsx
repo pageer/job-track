@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../api';
-import type { Resume } from '../types';
+import type { OneDriveFile, Resume } from '../types';
 import { formatFileSize, formatDate } from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
+import OneDrivePickerModal from '../components/OneDrivePickerModal';
 
 interface CreateFormState {
   name: string;
@@ -18,6 +19,7 @@ export default function ResumesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showOneDrivePicker, setShowOneDrivePicker] = useState(false);
   const [form, setForm] = useState<CreateFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +41,32 @@ export default function ResumesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // The OneDrive OAuth callback redirects here with ?onedrive=connected|error.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const flag = params.get('onedrive');
+    if (flag) {
+      window.history.replaceState({}, '', window.location.pathname);
+      if (flag === 'connected') {
+        setShowOneDrivePicker(true);
+      } else if (flag === 'error') {
+        setError('OneDrive connection failed or was cancelled.');
+      }
+    }
+  }, []);
+
+  function handleOneDriveSelect(file: OneDriveFile) {
+    setShowOneDrivePicker(false);
+    setForm((f) => ({
+      ...f,
+      linkUrl: file.webUrl,
+      name:
+        f.name.trim() === '' && file.name.includes('.')
+          ? file.name.replace(/\.[^.]+$/, '')
+          : f.name,
+    }));
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -184,12 +212,23 @@ export default function ResumesPage() {
             <div className="divider">or</div>
             <label className="field">
               <span>Use a link</span>
-              <input
-                type="url"
-                placeholder="https://example.com/my-resume.pdf"
-                value={form.linkUrl}
-                onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
-              />
+              <div className="field-row">
+                <input
+                  type="url"
+                  placeholder="https://example.com/my-resume.pdf"
+                  value={form.linkUrl}
+                  onChange={(e) =>
+                    setForm({ ...form, linkUrl: e.target.value })
+                  }
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setShowOneDrivePicker(true)}
+                >
+                  Browse OneDrive
+                </button>
+              </div>
             </label>
             <div className="form-actions">
               <button
@@ -209,6 +248,13 @@ export default function ResumesPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showOneDrivePicker && (
+        <OneDrivePickerModal
+          onSelect={(file) => handleOneDriveSelect(file)}
+          onClose={() => setShowOneDrivePicker(false)}
+        />
       )}
     </div>
   );

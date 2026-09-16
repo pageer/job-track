@@ -68,6 +68,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: CoverLetter::class, orphanRemoval: true)]
     private Collection $coverLetters;
 
+    #[ORM\OneToOne(mappedBy: 'user', targetEntity: OneDriveToken::class, cascade: ['remove'])]
+    private ?OneDriveToken $oneDriveToken = null;
+
     public function __construct()
     {
         $this->jobSearches = new ArrayCollection();
@@ -260,5 +263,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         return $this;
+    }
+
+    public function getOneDriveToken(): ?OneDriveToken
+    {
+        return $this->oneDriveToken;
     }
 }

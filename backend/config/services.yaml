@@ -26,6 +26,13 @@ services:
             $apiKey: '%env(OPENROUTER_API_KEY)%'
             $model: '%env(OPENROUTER_MODEL)%'
 
+    App\Service\OneDriveClient:
+        arguments:
+            $clientId: '%env(ONEDRIVE_CLIENT_ID)%'
+            $tenant: '%env(ONEDRIVE_TENANT)%'
+            $folderPath: '%env(ONEDRIVE_FOLDER_PATH)%'
+            $redirectUri: '%env(ONEDRIVE_REDIRECT_URI)%'
+
     App\Service\FileUploader:
         arguments:
             $uploadDir: '%kernel.project_dir%/var/uploads'

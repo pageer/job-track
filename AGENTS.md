@@ -56,6 +56,13 @@ Frontend checks run via npm scripts: `npm run check` runs **prettier → eslint 
 - Config lives in `backend/.env(.local)`: `OPENROUTER_API_KEY` (empty = feature disabled; returns 503 on extract) and `OPENROUTER_MODEL` (defaults to `google/gemma-4-31b-it:free`). Both are resolved in `backend/config/services.yaml`.
 - `AiExtractor` normalizes/validates model output (allowed job statuses, URLs, dates → `Y-m-d\TH:i:s`, interviewer lists) and throws `AiExtractionException` (config problems → 503, upstream/call errors → 502).
 
+## OneDrive resume picker
+
+- When creating a resume, "Browse OneDrive" opens `frontend/src/components/OneDrivePickerModal.tsx`, which connects a **personal Microsoft account** (OAuth 2.0 Authorization Code + PKCE, no client secret) and lists files from a configured folder. Picking a file sets `linkUrl` to its OneDrive web URL.
+- Backend: `backend/src/Controller/OneDriveController.php` (`GET /api/onedrive/status|auth-url|callback|files`, `POST /api/onedrive/disconnect`) + `backend/src/Service/OneDriveClient.php`. The callback redirects to `/resumes?onedrive=connected|error`; `ResumesPage.tsx` reads that flag and auto-opens the picker.
+- Tokens are stored per-user in the `one_drive_token` table (plaintext, never serialized via API). Config missing → 503; not connected / token expired → 409 (server deletes the token); upstream errors → 502. `OneDriveException::isConfigurationProblem()` distinguishes 503 vs 502.
+- Config lives in `backend/.env(.local)`: `ONEDRIVE_CLIENT_ID` (empty = feature disabled; status returns `clientConfigured: false`), `ONEDRIVE_TENANT` (default `consumers` — personal accounts only), `ONEDRIVE_FOLDER_PATH` (default `Resumes`; empty = OneDrive root), `ONEDRIVE_REDIRECT_URI` (optional; otherwise auto-derived from the request host). Azure app registration notes (redirect URIs, scopes `offline_access Files.Read`, optional `User.Read`) are documented in `backend/.env.example`.
+
 ## Deployment
 
 - `deploy.sh` (server): `git pull` + `composer install --no-dev` + optional frontend build + migrations + cache warm.
