@@ -1,5 +1,10 @@
 export type JobStatus =
-  'investigating' | 'applied' | 'in_progress' | 'rejected' | 'accepted';
+  | 'investigating'
+  | 'applied'
+  | 'in_progress'
+  | 'no_response'
+  | 'rejected'
+  | 'accepted';
 export type ResumeKind = 'file' | 'link';
 
 export interface User {
@@ -110,6 +115,7 @@ export const JOB_STATUSES: JobStatus[] = [
   'investigating',
   'applied',
   'in_progress',
+  'no_response',
   'rejected',
   'accepted',
 ];
@@ -118,6 +124,7 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   investigating: 'Investigating',
   applied: 'Applied',
   in_progress: 'In progress',
+  no_response: 'No response',
   rejected: 'Rejected',
   accepted: 'Accepted',
 };

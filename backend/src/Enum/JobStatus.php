@@ -7,6 +7,7 @@ enum JobStatus: string
     case Investigating = 'investigating';
     case Applied = 'applied';
     case InProgress = 'in_progress';
+    case NoResponse = 'no_response';
     case Rejected = 'rejected';
     case Accepted = 'accepted';
 

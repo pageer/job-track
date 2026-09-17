@@ -72,7 +72,7 @@ class AiExtractor
             . 'Do not invent facts; use null for unknown values and [] for empty lists. '
             . 'Return exactly this schema: '
             . '{"job":{"title":"string|null - job title/position","company":"string|null - company name",'
-            . '"status":"one of investigating|applied|in_progress|rejected|accepted - investigating unless the message clearly indicates otherwise",'
+            . '"status":"one of investigating|applied|in_progress|no_response|rejected|accepted - investigating unless the message clearly indicates otherwise",'
             . '"descriptionUrl":"string|null - job posting URL if mentioned in the message, otherwise null",'
             . '"descriptionHtml":"string|null - 1-3 plain-text sentences summarizing the role from the message, otherwise null"},'
             . '"interview":{"date":"string|null - ISO-8601 local datetime without timezone, e.g. 2026-09-20T15:00:00; '

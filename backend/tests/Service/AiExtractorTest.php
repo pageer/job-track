@@ -93,6 +93,17 @@ final class AiExtractorTest extends TestCase
         $this->assertSame('investigating', $result['job']['status']);
     }
 
+    public function testNoResponseStatusIsAccepted(): void
+    {
+        $content = json_encode([
+            'job' => ['title' => 'Dev', 'company' => 'Initech', 'status' => 'no_response'],
+        ], JSON_THROW_ON_ERROR);
+
+        $result = $this->extractorWithResponse($this->envelope($content))->extract('pasted message', 'job');
+
+        $this->assertSame('no_response', $result['job']['status']);
+    }
+
     public function testInvalidUrlBecomesNull(): void
     {
         $content = json_encode([

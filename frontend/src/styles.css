@@ -287,6 +287,11 @@ a:hover {
   color: #b45309;
 }
 
+.badge-no_response {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
 .badge-rejected {
   background: #fee2e2;
   color: #b91c1c;
