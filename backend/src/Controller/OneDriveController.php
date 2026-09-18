@@ -9,6 +9,7 @@ use App\Service\OneDriveAuthException;
 use App\Service\OneDriveClient;
 use App\Service\OneDriveException;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -23,6 +24,7 @@ class OneDriveController extends AbstractController
         private OneDriveClient $oneDriveClient,
         private OneDriveTokenRepository $tokenRepository,
         private EntityManagerInterface $entityManager,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -69,23 +71,33 @@ class OneDriveController extends AbstractController
     public function callback(Request $request): RedirectResponse
     {
         if (!$this->oneDriveClient->isConfigured()) {
-            return $this->redirectFlag('error');
+            $this->logger->error('OneDrive callback rejected: client is not configured.');
+            return $this->redirectFlag('error', 'not_configured');
         }
 
         $session = $request->getSession();
 
         if ($request->query->has('error')) {
-            return $this->redirectFlag('error');
+            $this->logger->error('OneDrive callback rejected by Microsoft', [
+                'error' => (string) $request->query->get('error'),
+                'errorDescription' => (string) $request->query->get('error_description'),
+            ]);
+            return $this->redirectFlag('error', 'microsoft');
         }
 
         $state = (string) $request->query->get('state', '');
         if ('' === $state || !hash_equals((string) $session->get('onedrive_state'), $state)) {
-            return $this->redirectFlag('error');
+            $this->logger->error('OneDrive callback rejected: state mismatch.', [
+                'receivedState' => $state,
+                'hasSessionState' => null !== $session->get('onedrive_state'),
+            ]);
+            return $this->redirectFlag('error', 'state_mismatch');
         }
 
         $code = (string) $request->query->get('code', '');
         if ('' === $code) {
-            return $this->redirectFlag('error');
+            $this->logger->error('OneDrive callback rejected: no authorization code present.');
+            return $this->redirectFlag('error', 'missing_code');
         }
 
         $session->remove('onedrive_state');
@@ -118,10 +130,16 @@ class OneDriveController extends AbstractController
             }
 
             $this->entityManager->flush();
-        } catch (OneDriveException) {
-            return $this->redirectFlag('error');
+        } catch (OneDriveException $e) {
+            $this->logger->error('OneDrive callback failed during token exchange.', [
+                'message' => $e->getMessage(),
+            ]);
+            return $this->redirectFlag('error', 'exchange:' . $e->getMessage());
         }
 
+        $this->logger->info('OneDrive account connected.', [
+            'accountEmail' => $token->getAccountEmail(),
+        ]);
         return $this->redirectFlag('connected');
     }
 
@@ -209,8 +227,13 @@ class OneDriveController extends AbstractController
         return '' !== $override ? $override : $request->getSchemeAndHttpHost() . '/api/onedrive/callback';
     }
 
-    private function redirectFlag(string $flag): RedirectResponse
+    private function redirectFlag(string $flag, ?string $reason = null): RedirectResponse
     {
-        return $this->redirect('/resumes?onedrive=' . $flag);
+        $url = '/resumes?onedrive=' . $flag;
+        if (null !== $reason) {
+            $url .= '&reason=' . rawurlencode($reason);
+        }
+
+        return $this->redirect($url);
     }
 }

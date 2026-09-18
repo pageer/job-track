@@ -14,6 +14,24 @@ interface CreateFormState {
 
 const emptyForm: CreateFormState = { name: '', linkUrl: '', file: null };
 
+function oneDriveError(reason: string | null): string {
+  if (reason?.startsWith('exchange:')) {
+    return `OneDrive connection failed: ${reason.slice('exchange:'.length)}`;
+  }
+  switch (reason) {
+    case 'not_configured':
+      return 'OneDrive is not configured on the server.';
+    case 'microsoft':
+      return 'Microsoft rejected the connection request. Check the OneDrive app registration.';
+    case 'state_mismatch':
+      return 'The connection session was lost or expired. Please try again.';
+    case 'missing_code':
+      return 'The OneDrive connection returned no authorization code.';
+    default:
+      return 'OneDrive connection failed or was cancelled.';
+  }
+}
+
 export default function ResumesPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +69,7 @@ export default function ResumesPage() {
       if (flag === 'connected') {
         setShowOneDrivePicker(true);
       } else if (flag === 'error') {
-        setError('OneDrive connection failed or was cancelled.');
+        setError(oneDriveError(params.get('reason')));
       }
     }
   }, []);
