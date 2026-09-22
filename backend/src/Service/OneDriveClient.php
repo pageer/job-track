@@ -26,6 +26,7 @@ class OneDriveClient
         private string $tenant = 'consumers',
         private string $folderPath = 'Resumes',
         private string $redirectUri = '',
+        private string $clientSecret = '',
     ) {
     }
 
@@ -80,17 +81,19 @@ class OneDriveClient
      */
     public function exchangeCode(string $callbackUrl, string $code, string $codeVerifier): array
     {
-        $data = $this->post(
-            '/token',
-            [
-                'client_id' => $this->clientId,
-                'grant_type' => 'authorization_code',
-                'code' => $code,
-                'redirect_uri' => $callbackUrl,
-                'code_verifier' => $codeVerifier,
-                'scope' => self::SCOPES,
-            ],
-        );
+        $body = [
+            'client_id' => $this->clientId,
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => $callbackUrl,
+            'code_verifier' => $codeVerifier,
+            'scope' => self::SCOPES,
+        ];
+        if ('' !== $this->clientSecret) {
+            $body['client_secret'] = $this->clientSecret;
+        }
+
+        $data = $this->post('/token', $body);
 
         return [
             'accessToken' => (string) ($data['access_token'] ?? ''),
@@ -107,15 +110,17 @@ class OneDriveClient
      */
     public function refreshAccess(string $refreshToken): array
     {
-        $data = $this->post(
-            '/token',
-            [
-                'client_id' => $this->clientId,
-                'grant_type' => 'refresh_token',
-                'refresh_token' => $refreshToken,
-                'scope' => self::SCOPES,
-            ],
-        );
+        $body = [
+            'client_id' => $this->clientId,
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $refreshToken,
+            'scope' => self::SCOPES,
+        ];
+        if ('' !== $this->clientSecret) {
+            $body['client_secret'] = $this->clientSecret;
+        }
+
+        $data = $this->post('/token', $body);
 
         return [
             'accessToken' => (string) ($data['access_token'] ?? ''),

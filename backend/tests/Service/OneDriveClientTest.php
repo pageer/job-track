@@ -73,6 +73,57 @@ final class OneDriveClientTest extends TestCase
         $this->assertSame(3600, $result['expiresIn']);
     }
 
+    public function testExchangeCodeSendsClientSecretWhenConfigured(): void
+    {
+        $capturedBody = null;
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->method('request')->willReturnCallback(function (string $method, string $url, array $options = []) use (&$capturedBody): ResponseInterface {
+            $capturedBody = $options['body'] ?? [];
+
+            return $this->mockResponse(200, '{"access_token":"a","refresh_token":"r","expires_in":3600}');
+        });
+
+        $onedrive = new OneDriveClient($client, 'my-client-id', 'consumers', 'Resumes', '', 'my-secret');
+        $onedrive->exchangeCode('http://127.0.0.1:8000/api/onedrive/callback', 'the-code', 'the-verifier');
+
+        $this->assertIsArray($capturedBody);
+        $this->assertSame('my-secret', $capturedBody['client_secret']);
+    }
+
+    public function testExchangeCodeOmitsClientSecretWhenNotConfigured(): void
+    {
+        $capturedBody = null;
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->method('request')->willReturnCallback(function (string $method, string $url, array $options = []) use (&$capturedBody): ResponseInterface {
+            $capturedBody = $options['body'] ?? [];
+
+            return $this->mockResponse(200, '{"access_token":"a","refresh_token":"r","expires_in":3600}');
+        });
+
+        $this->clientWithMock($client, 'my-client-id')
+            ->exchangeCode('http://127.0.0.1:8000/api/onedrive/callback', 'the-code', 'the-verifier');
+
+        $this->assertIsArray($capturedBody);
+        $this->assertArrayNotHasKey('client_secret', $capturedBody);
+    }
+
+    public function testRefreshSendsClientSecretWhenConfigured(): void
+    {
+        $capturedBody = null;
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->method('request')->willReturnCallback(function (string $method, string $url, array $options = []) use (&$capturedBody): ResponseInterface {
+            $capturedBody = $options['body'] ?? [];
+
+            return $this->mockResponse(200, '{"access_token":"a","refresh_token":"r","expires_in":3600}');
+        });
+
+        $onedrive = new OneDriveClient($client, 'my-client-id', 'consumers', 'Resumes', '', 'my-secret');
+        $onedrive->refreshAccess('refresh-old');
+
+        $this->assertIsArray($capturedBody);
+        $this->assertSame('my-secret', $capturedBody['client_secret']);
+    }
+
     public function testRefreshUsesRotatedRefreshToken(): void
     {
         $response = $this->mockResponse(200, json_encode([
