@@ -24,6 +24,15 @@ export interface JobSearch {
   jobCount: number;
 }
 
+export interface JobActivity {
+  id: number;
+  description: string;
+  details: string | null;
+  date: string;
+  hoursSpent: number;
+  createdAt: string;
+}
+
 export interface JobSearchDetail extends JobSearch {
   jobs: JobSummary[];
 }

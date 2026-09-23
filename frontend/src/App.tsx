@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import SearchDetailPage from './pages/SearchDetailPage';
 import JobDetailPage from './pages/JobDetailPage';
+import ActivityTrackerPage from './pages/ActivityTrackerPage';
 import ResumesPage from './pages/ResumesPage';
 import CoverLettersPage from './pages/CoverLettersPage';
 import UsersPage from './pages/UsersPage';
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/searches/:searchId" element={<SearchDetailPage />} />
         <Route path="/jobs/:jobId" element={<JobDetailPage />} />
+        <Route path="/activities" element={<ActivityTrackerPage />} />
         <Route path="/resumes" element={<ResumesPage />} />
         <Route path="/cover-letters" element={<CoverLettersPage />} />
         <Route path="/users" element={<UsersPage />} />

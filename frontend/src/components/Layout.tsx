@@ -25,6 +25,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/cover-letters" className={navLinkClass}>
             Cover Letters
           </NavLink>
+          <NavLink to="/activities" className={navLinkClass}>
+            Activity Tracker
+          </NavLink>
           {isAdmin && (
             <NavLink to="/users" className={navLinkClass}>
               Users

@@ -72,3 +72,30 @@ export function formatFileSize(bytes: number | null | undefined): string {
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+export function formatDateKey(key: string | null | undefined): string {
+  if (!key) {
+    return '';
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(key);
+  if (!match) {
+    return key;
+  }
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function formatHours(hours: number | null | undefined): string {
+  if (hours === null || hours === undefined || !Number.isFinite(hours)) {
+    return '';
+  }
+  const rounded = Math.round(hours * 100) / 100;
+  const text = Number.isInteger(rounded)
+    ? String(rounded)
+    : rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  return `${text} h`;
+}

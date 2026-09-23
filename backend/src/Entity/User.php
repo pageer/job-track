@@ -71,11 +71,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: OneDriveToken::class, cascade: ['remove'])]
     private ?OneDriveToken $oneDriveToken = null;
 
+    /**
+     * @var Collection<int, JobActivity>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: JobActivity::class, orphanRemoval: true)]
+    private Collection $jobActivities;
+
     public function __construct()
     {
         $this->jobSearches = new ArrayCollection();
         $this->resumes = new ArrayCollection();
         $this->coverLetters = new ArrayCollection();
+        $this->jobActivities = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -268,5 +275,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getOneDriveToken(): ?OneDriveToken
     {
         return $this->oneDriveToken;
+    }
+
+    /**
+     * @return Collection<int, JobActivity>
+     */
+    public function getJobActivities(): Collection
+    {
+        return $this->jobActivities;
+    }
+
+    public function addJobActivity(JobActivity $jobActivity): static
+    {
+        if (!$this->jobActivities->contains($jobActivity)) {
+            $this->jobActivities->add($jobActivity);
+            $jobActivity->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeJobActivity(JobActivity $jobActivity): static
+    {
+        if ($this->jobActivities->removeElement($jobActivity)) {
+            // set the owning side to null (unless already changed)
+            if ($jobActivity->getUser() === $this) {
+                $jobActivity->setUser(null);
+            }
+        }
+
+        return $this;
     }
 }
