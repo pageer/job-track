@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { ApiError } from '../api';
+import { api, ApiError } from '../api';
 import ErrorBanner from '../components/ErrorBanner';
+import type { JobSearch } from '../types';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +19,17 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
+      let target = '/';
+      try {
+        const searches = await api.get<JobSearch[]>('/api/job-searches');
+        const active = searches.filter((s) => s.endDate === null);
+        if (active.length === 1) {
+          target = `/searches/${active[0].id}`;
+        }
+      } catch {
+        // Falls back to the dashboard if searches can't be loaded.
+      }
+      navigate(target, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
