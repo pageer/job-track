@@ -77,12 +77,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: JobActivity::class, orphanRemoval: true)]
     private Collection $jobActivities;
 
+    /**
+     * @var Collection<int, Todo>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Todo::class, orphanRemoval: true)]
+    private Collection $todos;
+
     public function __construct()
     {
         $this->jobSearches = new ArrayCollection();
         $this->resumes = new ArrayCollection();
         $this->coverLetters = new ArrayCollection();
         $this->jobActivities = new ArrayCollection();
+        $this->todos = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -301,6 +308,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($jobActivity->getUser() === $this) {
                 $jobActivity->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Todo>
+     */
+    public function getTodos(): Collection
+    {
+        return $this->todos;
+    }
+
+    public function addTodo(Todo $todo): static
+    {
+        if (!$this->todos->contains($todo)) {
+            $this->todos->add($todo);
+            $todo->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTodo(Todo $todo): static
+    {
+        if ($this->todos->removeElement($todo)) {
+            // set the owning side to null (unless already changed)
+            if ($todo->getUser() === $this) {
+                $todo->setUser(null);
             }
         }
 

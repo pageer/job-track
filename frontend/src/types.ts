@@ -33,6 +33,14 @@ export interface JobActivity {
   createdAt: string;
 }
 
+export interface Todo {
+  id: number;
+  description: string;
+  details: string | null;
+  targetDate: string;
+  createdAt: string;
+}
+
 export interface JobSearchDetail extends JobSearch {
   jobs: JobSummary[];
 }
