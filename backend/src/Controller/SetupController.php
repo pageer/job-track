@@ -51,7 +51,7 @@ class SetupController extends AbstractController
             return $this->json(['error' => 'Password must be at least 8 characters long.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (null === filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json(['error' => 'Please provide a valid email address.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
