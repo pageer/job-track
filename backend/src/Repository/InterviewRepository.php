@@ -16,18 +16,18 @@ class InterviewRepository extends ServiceEntityRepository
         parent::__construct($registry, Interview::class);
     }
 
-    //    /**
-    //     * @return Interview[] Returns an array of Interview objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('i')
-    //            ->andWhere('i.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('i.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Interview[]
+     */
+    public function findAllWithJob(): array
+    {
+        return $this->createQueryBuilder('i')
+            ->addSelect('a', 'j', 'js')
+            ->join('i.application', 'a')
+            ->join('a.job', 'j')
+            ->join('j.jobSearch', 'js')
+            ->orderBy('i.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

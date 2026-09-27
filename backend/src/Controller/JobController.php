@@ -2,10 +2,12 @@
 
 namespace App\Controller;
 
+use App\Entity\Company;
 use App\Entity\Job;
 use App\Entity\JobSearch;
 use App\Entity\User;
 use App\Enum\JobStatus;
+use App\Repository\CompanyRepository;
 use App\Repository\JobRepository;
 use App\Repository\JobSearchRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,6 +22,7 @@ class JobController extends AbstractController
     public function __construct(
         private JobRepository $jobRepository,
         private JobSearchRepository $jobSearchRepository,
+        private CompanyRepository $companyRepository,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -63,6 +66,7 @@ class JobController extends AbstractController
         $job->setJobSearch($search);
         $job->setTitle($title);
         $job->setCompany($company);
+        $job->setCompanyRef($this->findOrCreateCompany($company));
         $job->setStatus($status);
         $job->setDescriptionHtml($this->nullableString($data['descriptionHtml'] ?? null));
         $job->setDescriptionUrl($this->nullableString($data['descriptionUrl'] ?? null));
@@ -108,6 +112,7 @@ class JobController extends AbstractController
                 return $this->json(['error' => 'A company is required.'], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
             $job->setCompany($company);
+            $job->setCompanyRef($this->findOrCreateCompany($company));
         }
 
         if (array_key_exists('status', $data)) {
@@ -170,6 +175,21 @@ class JobController extends AbstractController
         }
 
         return JobStatus::tryFrom($value);
+    }
+
+    private function findOrCreateCompany(string $name): Company
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $company = $this->companyRepository->findByNameForUser($name, $user->getId());
+        if (null === $company) {
+            $company = new Company();
+            $company->setUser($user);
+            $company->setName($name);
+            $this->entityManager->persist($company);
+        }
+
+        return $company;
     }
 
     private function nullableString(mixed $value): ?string

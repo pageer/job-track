@@ -49,6 +49,7 @@ export interface JobSummary {
   id: number;
   title: string;
   company: string;
+  companyId: number | null;
   status: JobStatus;
   jobSearchId: number;
   actionDate: string | null;
@@ -126,6 +127,39 @@ export interface CoverLetter {
   name: string;
   body: string;
   createdAt: string;
+}
+
+export interface Company {
+  id: number;
+  name: string;
+  jobCount: number;
+  createdAt: string;
+}
+
+export interface Contact {
+  id: number;
+  date: string;
+  description: string | null;
+  needsFollowUp: boolean;
+  personId: number;
+  createdAt: string;
+}
+
+export interface Person {
+  id: number;
+  name: string;
+  email: string | null;
+  linkedInUrl: string | null;
+  notes: string | null;
+  companyId: number | null;
+  companyName: string | null;
+  createdAt: string;
+  lastContact: Contact | null;
+  needsFollowUp: boolean;
+}
+
+export interface PersonDetail extends Person {
+  contacts: Contact[];
 }
 
 export const JOB_STATUSES: JobStatus[] = [

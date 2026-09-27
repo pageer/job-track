@@ -29,18 +29,16 @@ class JobRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    //    /**
-    //     * @return Job[] Returns an array of Job objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('j')
-    //            ->andWhere('j.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('j.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Job[]
+     */
+    public function findAllWithSearch(): array
+    {
+        return $this->createQueryBuilder('j')
+            ->addSelect('js')
+            ->join('j.jobSearch', 'js')
+            ->orderBy('j.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

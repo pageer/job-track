@@ -3,10 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\Application;
+use App\Entity\Contact;
 use App\Entity\Interview;
+use App\Entity\Person;
 use App\Entity\User;
 use App\Repository\ApplicationRepository;
+use App\Repository\ContactRepository;
 use App\Repository\InterviewRepository;
+use App\Repository\PersonRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +24,8 @@ class InterviewController extends AbstractController
         private InterviewRepository $interviewRepository,
         private ApplicationRepository $applicationRepository,
         private EntityManagerInterface $entityManager,
+        private PersonRepository $personRepository,
+        private ContactRepository $contactRepository,
     ) {
     }
 
@@ -56,6 +62,7 @@ class InterviewController extends AbstractController
         $interview->setNotes($this->nullableString($data['notes'] ?? null));
 
         $this->entityManager->persist($interview);
+        $this->syncNetworkingForInterview($interview);
         $this->entityManager->flush();
 
         return $this->json($interview, Response::HTTP_CREATED, [], ['groups' => ['interview.read']]);
@@ -87,6 +94,7 @@ class InterviewController extends AbstractController
             $interview->setNotes($this->nullableString($data['notes']));
         }
 
+        $this->syncNetworkingForInterview($interview);
         $this->entityManager->flush();
 
         return $this->json($interview, 200, [], ['groups' => ['interview.read']]);
@@ -104,6 +112,77 @@ class InterviewController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json(['success' => true]);
+    }
+
+    /**
+     * Finds-or-creates a Person per interviewer (linked to the job's company) and a
+     * Contact on the interview date whose description matches the interview notes.
+     * Contacts previously derived from the same interview are updated to follow the
+     * current date/notes; interviewers no longer listed are left in place as history.
+     */
+    private function syncNetworkingForInterview(Interview $interview): void
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $job = $interview->getApplication()?->getJob();
+        $company = $job?->getCompanyRef();
+        $companyId = $company?->getId();
+        $date = new \DateTimeImmutable($interview->getDate()?->format('Y-m-d') ?? '');
+        $notes = $interview->getNotes();
+        $description = (null === $notes || '' === $notes) ? null : $notes;
+
+        $contactsByPersonId = [];
+        $interviewId = $interview->getId();
+        if (null !== $interviewId) {
+            foreach ($this->contactRepository->findByInterview($interviewId) as $contact) {
+                $personId = $contact->getPerson()?->getId();
+                if (null !== $personId) {
+                    $contactsByPersonId[$personId] = $contact;
+                }
+            }
+        }
+
+        $seen = [];
+        foreach ($interview->getInterviewers() as $name) {
+            $seenKey = strtolower($name);
+            if (isset($seen[$seenKey])) {
+                continue;
+            }
+            $seen[$seenKey] = true;
+
+            $person = $this->personRepository->findByNameAndCompany($user->getId(), $name, $companyId);
+            if (null === $person) {
+                $person = new Person();
+                $person->setUser($user);
+                $person->setName($name);
+                $person->setCompany($company);
+                $this->entityManager->persist($person);
+            }
+
+            $contact = $contactsByPersonId[$person->getId()] ?? null;
+            if (null === $contact) {
+                $contact = $this->contactForPerson($person->getId(), $date, $description);
+            }
+            if (null === $contact->getId()) {
+                $contact->setPerson($person);
+                $this->entityManager->persist($contact);
+            }
+            $contact->setDate($date);
+            $contact->setDescription($description);
+            $contact->setInterview($interview);
+        }
+    }
+
+    private function contactForPerson(?int $personId, \DateTimeImmutable $date, ?string $description): Contact
+    {
+        if (null !== $personId) {
+            $existing = $this->contactRepository->findForPersonAndDate($personId, $date, $description);
+            if (null !== $existing) {
+                return $existing;
+            }
+        }
+
+        return new Contact();
     }
 
     private function findOwnedApplication(int $applicationId): ?Application
@@ -146,14 +225,21 @@ class InterviewController extends AbstractController
      */
     private function parseInterviewers(mixed $value): array
     {
-        if (!is_array($value)) {
+        if (null === $value) {
             return [];
         }
 
-        return array_values(array_filter(array_map(
-            static fn (mixed $item): string => trim((string) $item),
-            $value
-        ), static fn (string $item): bool => '' !== $item));
+        $names = [];
+        foreach (is_array($value) ? $value : [$value] as $item) {
+            foreach (explode(',', (string) $item) as $part) {
+                $trimmed = trim($part);
+                if ('' !== $trimmed) {
+                    $names[] = $trimmed;
+                }
+            }
+        }
+
+        return $names;
     }
 
     private function nullableString(mixed $value): ?string

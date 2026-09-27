@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Entity\Application;
+use App\Entity\Company;
+use App\Entity\Contact;
 use App\Entity\Job;
 use App\Entity\JobSearch;
+use App\Entity\Person;
 use App\Entity\User;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -99,6 +102,38 @@ abstract class ControllerTestCase extends TestCase
         $application->setJob($job);
 
         return $application;
+    }
+
+    protected function createCompany(int $id, ?User $user = null, string $name = 'Acme Inc'): Company
+    {
+        $company = new Company();
+        $this->setId($company, $id);
+        $company->setUser($user ?? $this->user);
+        $company->setName($name);
+
+        return $company;
+    }
+
+    protected function createPerson(int $id, ?User $user = null, ?Company $company = null, string $name = 'Jane Doe'): Person
+    {
+        $person = new Person();
+        $this->setId($person, $id);
+        $person->setUser($user ?? $this->user);
+        $person->setName($name);
+        $person->setCompany($company);
+
+        return $person;
+    }
+
+    protected function createContact(int $id, Person $person, string $date = '2026-09-01', bool $needsFollowUp = false): Contact
+    {
+        $contact = new Contact();
+        $this->setId($contact, $id);
+        $contact->setPerson($person);
+        $contact->setDate(new \DateTimeImmutable($date));
+        $contact->setNeedsFollowUp($needsFollowUp);
+
+        return $contact;
     }
 
     /**

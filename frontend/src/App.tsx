@@ -10,6 +10,7 @@ import ActivityTrackerPage from './pages/ActivityTrackerPage';
 import TodoPage from './pages/TodoPage';
 import ResumesPage from './pages/ResumesPage';
 import CoverLettersPage from './pages/CoverLettersPage';
+import NetworkingPage from './pages/NetworkingPage';
 import UsersPage from './pages/UsersPage';
 
 function FullPageLoader() {
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/todos" element={<TodoPage />} />
         <Route path="/resumes" element={<ResumesPage />} />
         <Route path="/cover-letters" element={<CoverLettersPage />} />
+        <Route path="/networking" element={<NetworkingPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

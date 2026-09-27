@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\InterviewRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -41,9 +43,16 @@ class Interview
     #[Groups(['interview.read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    /**
+     * @var Collection<int, Contact>
+     */
+    #[ORM\OneToMany(mappedBy: 'interview', targetEntity: Contact::class)]
+    private Collection $contacts;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
+        $this->contacts = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -108,5 +117,13 @@ class Interview
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /**
+     * @return Collection<int, Contact>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
     }
 }

@@ -31,6 +31,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/todos" className={navLinkClass}>
             To-dos
           </NavLink>
+          <NavLink to="/networking" className={navLinkClass}>
+            Networking
+          </NavLink>
           {isAdmin && (
             <NavLink to="/users" className={navLinkClass}>
               Users

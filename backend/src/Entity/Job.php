@@ -34,6 +34,10 @@ class Job
     #[Groups(['job.read', 'job.ref', 'job.list'])]
     private ?string $company = null;
 
+    #[ORM\ManyToOne(inversedBy: 'jobs')]
+    #[ORM\JoinColumn(name: 'company_id', nullable: true)]
+    private ?Company $companyRef = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['job.read'])]
     private ?string $descriptionHtml = null;
@@ -152,6 +156,18 @@ class Job
         return $this->createdAt;
     }
 
+    public function getCompanyRef(): ?Company
+    {
+        return $this->companyRef;
+    }
+
+    public function setCompanyRef(?Company $companyRef): static
+    {
+        $this->companyRef = $companyRef;
+
+        return $this;
+    }
+
     public function getApplication(): ?Application
     {
         return $this->application;
@@ -207,6 +223,12 @@ class Job
     public function getJobSearchId(): ?int
     {
         return $this->jobSearch?->getId();
+    }
+
+    #[Groups(['job.list', 'job.read'])]
+    public function getCompanyId(): ?int
+    {
+        return $this->companyRef?->getId();
     }
 
     #[Groups(['job.list', 'job.read'])]

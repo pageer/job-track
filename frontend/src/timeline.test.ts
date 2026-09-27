@@ -7,6 +7,7 @@ function makeJob(partial: Partial<JobDetail>): JobDetail {
     id: 1,
     title: 'Engineer',
     company: 'Acme',
+    companyId: null,
     status: 'in_progress',
     jobSearchId: 1,
     actionDate: null,

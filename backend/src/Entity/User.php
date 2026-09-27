@@ -83,6 +83,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Todo::class, orphanRemoval: true)]
     private Collection $todos;
 
+    /**
+     * @var Collection<int, Company>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Company::class, orphanRemoval: true)]
+    private Collection $companies;
+
+    /**
+     * @var Collection<int, Person>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Person::class, orphanRemoval: true)]
+    private Collection $people;
+
     public function __construct()
     {
         $this->jobSearches = new ArrayCollection();
@@ -90,6 +102,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->coverLetters = new ArrayCollection();
         $this->jobActivities = new ArrayCollection();
         $this->todos = new ArrayCollection();
+        $this->companies = new ArrayCollection();
+        $this->people = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -338,6 +352,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($todo->getUser() === $this) {
                 $todo->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Company>
+     */
+    public function getCompanies(): Collection
+    {
+        return $this->companies;
+    }
+
+    public function addCompany(Company $company): static
+    {
+        if (!$this->companies->contains($company)) {
+            $this->companies->add($company);
+            $company->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCompany(Company $company): static
+    {
+        if ($this->companies->removeElement($company)) {
+            // set the owning side to null (unless already changed)
+            if ($company->getUser() === $this) {
+                $company->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Person>
+     */
+    public function getPeople(): Collection
+    {
+        return $this->people;
+    }
+
+    public function addPerson(Person $person): static
+    {
+        if (!$this->people->contains($person)) {
+            $this->people->add($person);
+            $person->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removePerson(Person $person): static
+    {
+        if ($this->people->removeElement($person)) {
+            // set the owning side to null (unless already changed)
+            if ($person->getUser() === $this) {
+                $person->setUser(null);
             }
         }
 
