@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
+import { JobSearchesProvider } from './jobSearches';
 import Layout from './components/Layout';
 import SetupPage from './pages/SetupPage';
 import LoginPage from './pages/LoginPage';
@@ -37,19 +38,21 @@ export default function App() {
   }
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/searches/:searchId" element={<SearchDetailPage />} />
-        <Route path="/jobs/:jobId" element={<JobDetailPage />} />
-        <Route path="/activities" element={<ActivityTrackerPage />} />
-        <Route path="/todos" element={<TodoPage />} />
-        <Route path="/resumes" element={<ResumesPage />} />
-        <Route path="/cover-letters" element={<CoverLettersPage />} />
-        <Route path="/networking" element={<NetworkingPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <JobSearchesProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/searches/:searchId" element={<SearchDetailPage />} />
+          <Route path="/jobs/:jobId" element={<JobDetailPage />} />
+          <Route path="/activities" element={<ActivityTrackerPage />} />
+          <Route path="/todos" element={<TodoPage />} />
+          <Route path="/resumes" element={<ResumesPage />} />
+          <Route path="/cover-letters" element={<CoverLettersPage />} />
+          <Route path="/networking" element={<NetworkingPage />} />
+          <Route path="/users" element={<UsersPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </JobSearchesProvider>
   );
 }

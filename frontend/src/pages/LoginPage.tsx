@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { api, ApiError } from '../api';
+import { activeJobSearch } from '../jobSearches';
 import ErrorBanner from '../components/ErrorBanner';
 import type { JobSearch } from '../types';
 
@@ -22,9 +23,9 @@ export default function LoginPage() {
       let target = '/';
       try {
         const searches = await api.get<JobSearch[]>('/api/job-searches');
-        const active = searches.filter((s) => s.endDate === null);
-        if (active.length === 1) {
-          target = `/searches/${active[0].id}`;
+        const active = activeJobSearch(searches);
+        if (active) {
+          target = `/searches/${active.id}`;
         }
       } catch {
         // Falls back to the dashboard if searches can't be loaded.

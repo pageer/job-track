@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
+import { useJobSearches } from '../jobSearches';
 import type { JobSearchDetail, JobStatus } from '../types';
 import { JOB_STATUSES, JOB_STATUS_LABELS } from '../types';
 import { formatDate, toDateInputValue } from '../utils';
@@ -45,6 +46,7 @@ type SortKey = 'createdAt' | 'actionDate';
 export default function SearchDetailPage() {
   const { searchId } = useParams<{ searchId: string }>();
   const navigate = useNavigate();
+  const { refresh: refreshNavSearches } = useJobSearches();
 
   const [search, setSearch] = useState<JobSearchDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,7 @@ export default function SearchDetailPage() {
       await api.patch(`/api/job-searches/${searchId}`, body);
       setShowEdit(false);
       await load();
+      await refreshNavSearches();
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -128,6 +131,7 @@ export default function SearchDetailPage() {
     setError(null);
     try {
       await api.delete(`/api/job-searches/${searchId}`);
+      await refreshNavSearches();
       navigate('/');
     } catch (err) {
       setError(

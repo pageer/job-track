@@ -1,10 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { jobsNavTarget, useJobSearches } from '../jobSearches';
 import type { ReactNode } from 'react';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const { searches } = useJobSearches();
   const isAdmin = user?.roles.includes('ROLE_ADMIN') ?? false;
+  const jobsNav = jobsNavTarget(searches);
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     'nav-link' + (isActive ? ' active' : '');
@@ -16,8 +19,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           Job Track
         </NavLink>
         <nav className="main-nav">
-          <NavLink to="/" end className={navLinkClass}>
-            Job Searches
+          <NavLink to={jobsNav.to} end={jobsNav.end} className={navLinkClass}>
+            {jobsNav.label}
           </NavLink>
           <NavLink to="/resumes" className={navLinkClass}>
             Resumes

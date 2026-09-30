@@ -12,6 +12,8 @@ Job application tracker. Two apps: Symfony 7.4 API backend (`backend/`) + React 
 - Root `package-lock.json` is an empty stub and gitignored. Real lockfiles: `frontend/package-lock.json`, `backend/composer.lock`.
 - Root `tags` is ctags output (gitignored).
 - `.env` files are **gitignored everywhere** (root, `backend/`, `frontend/`). Templates live in each dir's `.env.example`. `SYMFONY` requires an actual `backend/.env` to boot — first-time setup must copy `backend/.env.example` → `backend/.env`; deploy.sh and the docker image create it automatically if missing. Keep real secrets (DB creds, `OPENROUTER_API_KEY`) in the gitignored `backend/.env.local`.
+- A job search is **active** iff its `endDate` is `null` (there is no `status`/`isActive` column). `activeJobSearch()` in `frontend/src/jobSearches.tsx` returns the active search only when there is exactly one.
+- The first main-nav link is computed by `jobsNavTarget()`: with exactly one active search it reads **Jobs** and points at `/searches/{id}`, otherwise **Job Searches** pointing at `/`. The list itself is held by `JobSearchesProvider` (mounted in `App.tsx`, wraps `Layout`) — call its `refresh()` after creating, editing, or deleting a search or the nav goes stale. `SearchDetailPage` keeps the "← All job searches" back-link, and the `Job Track` brand link also goes to `/`.
 
 ## Commands (dev, in order)
 

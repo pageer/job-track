@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api';
+import { useJobSearches } from '../jobSearches';
 import type { JobSearch } from '../types';
 import { formatDate } from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
@@ -15,6 +16,7 @@ interface SearchFormState {
 const emptyForm: SearchFormState = { name: '', startDate: '', endDate: '' };
 
 export default function DashboardPage() {
+  const { refresh: refreshNavSearches } = useJobSearches();
   const [searches, setSearches] = useState<JobSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export default function DashboardPage() {
       setShowModal(false);
       setForm(emptyForm);
       await load();
+      await refreshNavSearches();
     } catch (err) {
       setError(
         err instanceof ApiError
