@@ -194,7 +194,7 @@ final class OneDriveClientTest extends TestCase
 
         $this->assertIsString($capturedUrl);
         $this->assertStringContainsString('/me/drive/root:/Resumes:/children', $capturedUrl);
-        $this->assertStringContainsString('$select=id,name,size,file,lastModifiedDateTime,webUrl', $capturedUrl);
+        $this->assertStringContainsString('$select=id,name,size,file,folder,lastModifiedDateTime,webUrl', $capturedUrl);
     }
 
     public function testListFilesUsesRootWhenFolderPathEmpty(): void
@@ -213,6 +213,36 @@ final class OneDriveClientTest extends TestCase
 
         $this->assertIsString($capturedUrl);
         $this->assertStringContainsString('/me/drive/root/children', $capturedUrl);
+    }
+
+    public function testListFilesSendsSupportedHttpClientOptions(): void
+    {
+        $capturedOptions = [];
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->method('request')->willReturnCallback(function (string $method, string $url, array $options = []) use (&$capturedOptions): ResponseInterface {
+            $capturedOptions = $options;
+
+            return $this->mockResponse(200, '{"value":[]}');
+        });
+
+        $this->clientWithMock($client, 'my-client-id')->listFiles('access-token');
+
+        // A mocked HttpClientInterface does not validate option names, so assert the
+        // option set explicitly: Symfony throws on anything outside its supported list
+        // (headers must go through `headers`, never a bare `accept` key).
+        $this->assertSame('access-token', $capturedOptions['auth_bearer']);
+        $this->assertSame(['Accept' => 'application/json'], $capturedOptions['headers']);
+        $this->assertArrayNotHasKey('accept', $capturedOptions);
+
+        $supported = [
+            'auth_basic', 'auth_bearer', 'query', 'headers', 'body', 'json', 'user_data',
+            'max_redirects', 'http_version', 'base_uri', 'buffer', 'on_progress', 'resolve',
+            'proxy', 'no_proxy', 'timeout', 'max_duration', 'max_connect_duration', 'bindto',
+            'verify_peer', 'verify_host', 'cafile', 'capath', 'local_cert', 'local_pk',
+            'passphrase', 'ciphers', 'peer_fingerprint', 'capture_peer_cert_chain',
+            'crypto_method', 'extra', 'auth_ntlm',
+        ];
+        $this->assertSame([], array_diff(array_keys($capturedOptions), $supported));
     }
 
     public function testListFilesOn401ThrowsAuthException(): void

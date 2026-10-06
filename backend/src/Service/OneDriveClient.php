@@ -139,7 +139,9 @@ class OneDriveClient
         $encoded = implode('/', array_map('rawurlencode', explode('/', trim($this->folderPath, '/'))));
 
         $url = self::GRAPH_BASE . '/me/drive/root' . ('' === $encoded ? '/children' : ':/' . $encoded . ':/children');
-        $url .= '?$select=id,name,size,file,lastModifiedDateTime,webUrl&$top=500';
+        // `folder` must be selected, otherwise Graph omits the facet and the folder
+        // filter below can never match.
+        $url .= '?$select=id,name,size,file,folder,lastModifiedDateTime,webUrl&$top=500';
 
         $data = $this->get($url, $accessToken);
 
@@ -198,7 +200,7 @@ class OneDriveClient
     {
         $response = $this->httpClient->request('GET', $url, [
             'auth_bearer' => $accessToken,
-            'accept' => 'application/json',
+            'headers' => ['Accept' => 'application/json'],
             'timeout' => self::DEFAULT_TIMEOUT,
         ]);
 
