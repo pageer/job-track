@@ -24,7 +24,7 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('closes when the backdrop is clicked', () => {
+  it('does not close when the backdrop is clicked', () => {
     const onClose = vi.fn();
     render(
       <Modal title="Edit" onClose={onClose}>
@@ -34,7 +34,7 @@ describe('Modal', () => {
     const backdrop = screen.getByRole('dialog').parentElement;
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop!);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('does not close when clicking inside the dialog', () => {
