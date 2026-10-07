@@ -58,6 +58,13 @@ class OneDriveController extends AbstractController
         $session->set('onedrive_pkce', $verifier);
         $session->set('onedrive_state', $state);
 
+        $returnTo = $this->sanitizeReturnTo((string) $request->query->get('returnTo', ''));
+        if (null === $returnTo) {
+            $session->remove('onedrive_return_to');
+        } else {
+            $session->set('onedrive_return_to', $returnTo);
+        }
+
         $url = $this->oneDriveClient->buildAuthorizationUrl(
             $this->callbackUrl($request),
             $state,
@@ -72,7 +79,7 @@ class OneDriveController extends AbstractController
     {
         if (!$this->oneDriveClient->isConfigured()) {
             $this->logger->error('OneDrive callback rejected: client is not configured.');
-            return $this->redirectFlag('error', 'not_configured');
+            return $this->redirectFlag($request, 'error', 'not_configured');
         }
 
         $session = $request->getSession();
@@ -82,7 +89,7 @@ class OneDriveController extends AbstractController
                 'error' => (string) $request->query->get('error'),
                 'errorDescription' => (string) $request->query->get('error_description'),
             ]);
-            return $this->redirectFlag('error', 'microsoft');
+            return $this->redirectFlag($request, 'error', 'microsoft');
         }
 
         $state = (string) $request->query->get('state', '');
@@ -91,13 +98,13 @@ class OneDriveController extends AbstractController
                 'receivedState' => $state,
                 'hasSessionState' => null !== $session->get('onedrive_state'),
             ]);
-            return $this->redirectFlag('error', 'state_mismatch');
+            return $this->redirectFlag($request, 'error', 'state_mismatch');
         }
 
         $code = (string) $request->query->get('code', '');
         if ('' === $code) {
             $this->logger->error('OneDrive callback rejected: no authorization code present.');
-            return $this->redirectFlag('error', 'missing_code');
+            return $this->redirectFlag($request, 'error', 'missing_code');
         }
 
         $session->remove('onedrive_state');
@@ -134,13 +141,13 @@ class OneDriveController extends AbstractController
             $this->logger->error('OneDrive callback failed during token exchange.', [
                 'message' => $e->getMessage(),
             ]);
-            return $this->redirectFlag('error', 'exchange:' . $e->getMessage());
+            return $this->redirectFlag($request, 'error', 'exchange:' . $e->getMessage());
         }
 
         $this->logger->info('OneDrive account connected.', [
             'accountEmail' => $token->getAccountEmail(),
         ]);
-        return $this->redirectFlag('connected');
+        return $this->redirectFlag($request, 'connected');
     }
 
     #[Route('/disconnect', name: 'disconnect', methods: ['POST'])]
@@ -227,13 +234,31 @@ class OneDriveController extends AbstractController
         return '' !== $override ? $override : $request->getSchemeAndHttpHost() . '/api/onedrive/callback';
     }
 
-    private function redirectFlag(string $flag, ?string $reason = null): RedirectResponse
+    private function redirectFlag(Request $request, string $flag, ?string $reason = null): RedirectResponse
     {
-        $url = '/resumes?onedrive=' . $flag;
+        $returnTo = $request->getSession()->remove('onedrive_return_to');
+        $url = \is_string($returnTo) && '' !== $returnTo ? $returnTo : '/resumes';
+        $url .= (str_contains($url, '?') ? '&' : '?') . 'onedrive=' . $flag;
         if (null !== $reason) {
             $url .= '&reason=' . rawurlencode($reason);
         }
 
         return $this->redirect($url);
+    }
+
+    /**
+     * Only accepts same-site absolute paths (e.g. /jobs/42) so the OAuth
+     * callback can never be turned into an open redirect.
+     */
+    private function sanitizeReturnTo(string $returnTo): ?string
+    {
+        if ('' === $returnTo) {
+            return null;
+        }
+        if (!str_starts_with($returnTo, '/') || str_starts_with($returnTo, '//') || str_contains($returnTo, '\\')) {
+            return null;
+        }
+
+        return $returnTo;
     }
 }

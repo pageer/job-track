@@ -94,6 +94,45 @@ final class OneDriveControllerTest extends ControllerTestCase
         $this->assertSame('OneDrive is not configured.', $this->decodeJson($response)['error']);
     }
 
+    public function testAuthUrlStoresTheRequestedReturnTo(): void
+    {
+        $client = $this->client(['isConfigured' => true]);
+        $client->method('createCodeVerifier')->willReturn('verifier');
+        $client->method('createCodeChallenge')->willReturn('challenge');
+        $client->method('buildAuthorizationUrl')->willReturn('https://login.live.com/oauth');
+
+        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $this->bindController($controller);
+
+        $session = $this->session();
+        $request = Request::create('https://example.com/api/onedrive/auth-url?returnTo=%2Fjobs%2F42', 'GET');
+        $request->setSession($session);
+
+        $controller->authUrl($request);
+
+        $this->assertSame('/jobs/42', $session->get('onedrive_return_to'));
+    }
+
+    public function testAuthUrlRejectsAnExternalReturnTo(): void
+    {
+        $client = $this->client(['isConfigured' => true]);
+        $client->method('createCodeVerifier')->willReturn('verifier');
+        $client->method('createCodeChallenge')->willReturn('challenge');
+        $client->method('buildAuthorizationUrl')->willReturn('https://login.live.com/oauth');
+
+        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $this->bindController($controller);
+
+        $session = $this->session();
+        $session->set('onedrive_return_to', '/stale');
+        $request = Request::create('https://example.com/api/onedrive/auth-url?returnTo=' . rawurlencode('//evil.example/steal'), 'GET');
+        $request->setSession($session);
+
+        $controller->authUrl($request);
+
+        $this->assertNull($session->get('onedrive_return_to'));
+    }
+
     public function testCallbackRedirectsToErrorWhenNotConfigured(): void
     {
         $client = $this->client(['isConfigured' => false]);
@@ -172,6 +211,53 @@ final class OneDriveControllerTest extends ControllerTestCase
         $this->assertSame('access-token', $persisted->getAccessToken());
         $this->assertSame('me@example.com', $persisted->getAccountEmail());
         $this->assertNull($session->get('onedrive_state'));
+    }
+
+    public function testCallbackRedirectsBackToTheOriginatingPageOnSuccess(): void
+    {
+        $client = $this->client(['isConfigured' => true]);
+        $client->method('exchangeCode')->willReturn([
+            'accessToken' => 'access-token',
+            'refreshToken' => 'refresh-token',
+            'expiresIn' => 3600,
+        ]);
+        $client->method('getAccountInfo')->willReturn([
+            'email' => 'me@example.com',
+            'displayName' => 'Me',
+        ]);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $entityManager, $this->logger());
+        $this->bindController($controller);
+
+        $request = $this->callbackRequest(['state' => 'expected-state', 'code' => 'code123']);
+        $session = $request->getSession();
+        $session->set('onedrive_state', 'expected-state');
+        $session->set('onedrive_pkce', 'verifier');
+        $session->set('onedrive_return_to', '/jobs/42');
+
+        $response = $controller->callback($request);
+
+        $this->assertSame('/jobs/42?onedrive=connected', $response->getTargetUrl());
+        $this->assertNull($session->get('onedrive_return_to'));
+    }
+
+    public function testCallbackAppendsTheFlagToAReturnToThatAlreadyHasAQuery(): void
+    {
+        $client = $this->client(['isConfigured' => true]);
+        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $this->bindController($controller);
+
+        $request = $this->callbackRequest(['state' => 'wrong-state', 'code' => 'code']);
+        $session = $request->getSession();
+        $session->set('onedrive_state', 'expected-state');
+        $session->set('onedrive_return_to', '/jobs/42?tab=application');
+
+        $response = $controller->callback($request);
+
+        $this->assertSame('/jobs/42?tab=application&onedrive=error&reason=state_mismatch', $response->getTargetUrl());
     }
 
     public function testCallbackUpdatesAnExistingToken(): void

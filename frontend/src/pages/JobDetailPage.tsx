@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type {
@@ -7,6 +13,7 @@ import type {
   JobDetail,
   JobNote,
   JobStatus,
+  OneDriveFile,
 } from '../types';
 import { JOB_STATUS_LABELS } from '../types';
 import {
@@ -16,10 +23,12 @@ import {
   toDateTimeInputValue,
 } from '../utils';
 import { buildTimeline } from '../timeline';
+import { consumeOneDriveFlag, oneDriveError } from '../oneDrive';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
 import RichTextEditor from '../components/RichTextEditor';
 import AiImportModal from '../components/AiImportModal';
+import OneDrivePickerModal from '../components/OneDrivePickerModal';
 
 interface JobFormState {
   title: string;
@@ -54,7 +63,9 @@ export default function JobDetailPage() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [resumeLinkUrl, setResumeLinkUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [showOneDrivePicker, setShowOneDrivePicker] = useState(false);
   const [savingResume, setSavingResume] = useState(false);
+  const resumeFileInputRef = useRef<HTMLInputElement>(null);
 
   const [showLetterModal, setShowLetterModal] = useState(false);
   const [coverLetterHtml, setCoverLetterHtml] = useState('');
@@ -96,6 +107,17 @@ export default function JobDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // The OneDrive OAuth callback redirects back with ?onedrive=connected|error.
+  useEffect(() => {
+    const result = consumeOneDriveFlag();
+    if (result?.flag === 'connected') {
+      setShowResumeModal(true);
+      setShowOneDrivePicker(true);
+    } else if (result?.flag === 'error') {
+      setError(oneDriveError(result.reason));
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -177,6 +199,19 @@ export default function JobDetailPage() {
           : 'Failed to create the application.',
       );
     }
+  }
+
+  function clearFileSelection() {
+    setResumeFile(null);
+    if (resumeFileInputRef.current) {
+      resumeFileInputRef.current.value = '';
+    }
+  }
+
+  function handleOneDriveSelect(file: OneDriveFile) {
+    setShowOneDrivePicker(false);
+    setResumeLinkUrl(file.webUrl);
+    clearFileSelection();
   }
 
   async function handleResumeSave(e: FormEvent) {
@@ -806,19 +841,37 @@ export default function JobDetailPage() {
             <label className="field">
               <span>Upload a file</span>
               <input
+                ref={resumeFileInputRef}
                 type="file"
-                onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  setResumeFile(e.target.files?.[0] ?? null);
+                  setResumeLinkUrl('');
+                }}
               />
             </label>
             <div className="divider">or</div>
             <label className="field">
               <span>Use a link</span>
-              <input
-                type="url"
-                placeholder="https://example.com/my-resume.pdf"
-                value={resumeLinkUrl}
-                onChange={(e) => setResumeLinkUrl(e.target.value)}
-              />
+              <div className="field-row">
+                <input
+                  type="url"
+                  placeholder="https://example.com/my-resume.pdf"
+                  value={resumeLinkUrl}
+                  onChange={(e) => {
+                    setResumeLinkUrl(e.target.value);
+                    if (resumeFile) {
+                      clearFileSelection();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setShowOneDrivePicker(true)}
+                >
+                  Browse OneDrive
+                </button>
+              </div>
             </label>
             <div className="form-actions">
               <button
@@ -840,6 +893,13 @@ export default function JobDetailPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showOneDrivePicker && (
+        <OneDrivePickerModal
+          onSelect={handleOneDriveSelect}
+          onClose={() => setShowOneDrivePicker(false)}
+        />
       )}
 
       {showLetterModal && application && (

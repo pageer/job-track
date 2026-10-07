@@ -82,7 +82,10 @@ export default function OneDrivePickerModal({
     setConnecting(true);
     setError(null);
     try {
-      const data = await api.get<{ url: string }>('/api/onedrive/auth-url');
+      const returnTo = window.location.pathname + window.location.search;
+      const data = await api.get<{ url: string }>(
+        `/api/onedrive/auth-url?returnTo=${encodeURIComponent(returnTo)}`,
+      );
       window.location.href = data.url;
     } catch (err) {
       setError(

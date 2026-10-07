@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../api';
 import type { OneDriveFile, Resume } from '../types';
 import { formatFileSize, formatDate } from '../utils';
+import { consumeOneDriveFlag, oneDriveError } from '../oneDrive';
 import ErrorBanner from '../components/ErrorBanner';
 import Modal from '../components/Modal';
 import OneDrivePickerModal from '../components/OneDrivePickerModal';
@@ -13,24 +14,6 @@ interface CreateFormState {
 }
 
 const emptyForm: CreateFormState = { name: '', linkUrl: '', file: null };
-
-function oneDriveError(reason: string | null): string {
-  if (reason?.startsWith('exchange:')) {
-    return `OneDrive connection failed: ${reason.slice('exchange:'.length)}`;
-  }
-  switch (reason) {
-    case 'not_configured':
-      return 'OneDrive is not configured on the server.';
-    case 'microsoft':
-      return 'Microsoft rejected the connection request. Check the OneDrive app registration.';
-    case 'state_mismatch':
-      return 'The connection session was lost or expired. Please try again.';
-    case 'missing_code':
-      return 'The OneDrive connection returned no authorization code.';
-    default:
-      return 'OneDrive connection failed or was cancelled.';
-  }
-}
 
 export default function ResumesPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -62,15 +45,11 @@ export default function ResumesPage() {
 
   // The OneDrive OAuth callback redirects here with ?onedrive=connected|error.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const flag = params.get('onedrive');
-    if (flag) {
-      window.history.replaceState({}, '', window.location.pathname);
-      if (flag === 'connected') {
-        setShowOneDrivePicker(true);
-      } else if (flag === 'error') {
-        setError(oneDriveError(params.get('reason')));
-      }
+    const result = consumeOneDriveFlag();
+    if (result?.flag === 'connected') {
+      setShowOneDrivePicker(true);
+    } else if (result?.flag === 'error') {
+      setError(oneDriveError(result.reason));
     }
   }, []);
 
