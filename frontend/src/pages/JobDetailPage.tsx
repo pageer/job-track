@@ -503,10 +503,11 @@ export default function JobDetailPage() {
             )}
             <div className="detail-row">
               <span className="detail-label">Resume</span>
-              <span>
+              <span className="detail-value">
                 {application.resumeKind === 'file' ? (
                   <>
                     <a
+                      className="break-word"
                       href={`/api/applications/${application.id}/resume/download`}
                       target="_blank"
                       rel="noreferrer"
@@ -520,6 +521,7 @@ export default function JobDetailPage() {
                   </>
                 ) : application.resumeKind === 'link' ? (
                   <a
+                    className="break-word"
                     href={application.resumeLinkUrl ?? '#'}
                     target="_blank"
                     rel="noreferrer"

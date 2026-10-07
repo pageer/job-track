@@ -302,9 +302,9 @@ export default function SearchDetailPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="page-toolbar">
+      <div className="page-toolbar page-toolbar-wrap">
         <h2>Jobs</h2>
-        <div className="btn-group">
+        <div className="btn-group btn-group-wrap">
           {jobs.length > 0 && (
             <div className="sort-group">
               <span className="filter-label">Sort:</span>
