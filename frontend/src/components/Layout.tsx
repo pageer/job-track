@@ -69,16 +69,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             {jobsNav.label}
           </NavLink>
-          <NavLink to="/resumes" className={navLinkClass} onClick={closeMenu}>
-            Resumes
-          </NavLink>
-          <NavLink
-            to="/cover-letters"
-            className={navLinkClass}
-            onClick={closeMenu}
-          >
-            Cover Letters
-          </NavLink>
+
           <NavLink
             to="/activities"
             className={navLinkClass}
