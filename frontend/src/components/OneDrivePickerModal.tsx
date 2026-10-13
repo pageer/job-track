@@ -8,11 +8,13 @@ import Modal from './Modal';
 interface OneDrivePickerModalProps {
   onSelect: (file: OneDriveFile) => void;
   onClose: () => void;
+  noun?: string;
 }
 
 export default function OneDrivePickerModal({
   onSelect,
   onClose,
+  noun = 'resume',
 }: OneDrivePickerModalProps) {
   const [status, setStatus] = useState<OneDriveStatus | null>(null);
   const [files, setFiles] = useState<OneDriveFile[]>([]);
@@ -141,7 +143,7 @@ export default function OneDrivePickerModal({
     content = (
       <>
         <p className="muted">
-          Connect your personal Microsoft account to choose a resume from the
+          Connect your personal Microsoft account to choose a {noun} from the
           configured OneDrive folder.
         </p>
         <button
@@ -176,7 +178,7 @@ export default function OneDrivePickerModal({
         {loadingFiles ? (
           <div className="spinner" aria-label="Loading files" />
         ) : filtered.length === 0 ? (
-          <p className="muted">No resumes found.</p>
+          <p className="muted">No {noun}s found.</p>
         ) : (
           <ul className="file-list">
             {filtered.map((f) => (
@@ -218,7 +220,7 @@ export default function OneDrivePickerModal({
   }
 
   return (
-    <Modal title="Add resume from OneDrive" onClose={onClose}>
+    <Modal title={`Add ${noun} from OneDrive`} onClose={onClose}>
       <div className="form">
         <ErrorBanner message={error} />
         {content}

@@ -6,6 +6,7 @@ export type JobStatus =
   | 'rejected'
   | 'accepted';
 export type ResumeKind = 'file' | 'link';
+export type CoverLetterKind = 'text' | 'link';
 
 export interface User {
   id: number;
@@ -77,7 +78,9 @@ export interface Application {
   resumeMimeType: string | null;
   resumeFileSize: number | null;
   resumeLinkUrl: string | null;
+  coverLetterKind: CoverLetterKind | null;
   coverLetterHtml: string | null;
+  coverLetterLinkUrl: string | null;
   notes: string | null;
   actionDate: string | null;
   createdAt: string;

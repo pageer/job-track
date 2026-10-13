@@ -9,6 +9,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type {
   Application,
+  CoverLetterKind,
   Interview,
   JobDetail,
   JobNote,
@@ -68,11 +69,19 @@ export default function JobDetailPage() {
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
 
   const [showLetterModal, setShowLetterModal] = useState(false);
+  const [coverLetterMode, setCoverLetterMode] =
+    useState<CoverLetterKind>('text');
   const [coverLetterHtml, setCoverLetterHtml] = useState('');
+  const [coverLetterLinkUrl, setCoverLetterLinkUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [actionDate, setActionDate] = useState('');
   const [savingLetter, setSavingLetter] = useState(false);
   const [showFullLetter, setShowFullLetter] = useState(false);
+  const [pendingLetterOneDrive, setPendingLetterOneDrive] = useState(false);
+
+  const [oneDriveTarget, setOneDriveTarget] = useState<'resume' | 'letter'>(
+    'resume',
+  );
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [editingInterview, setEditingInterview] = useState<Interview | null>(
@@ -112,12 +121,42 @@ export default function JobDetailPage() {
   useEffect(() => {
     const result = consumeOneDriveFlag();
     if (result?.flag === 'connected') {
-      setShowResumeModal(true);
+      const target =
+        window.sessionStorage.getItem('onedriveTarget') === 'letter'
+          ? 'letter'
+          : 'resume';
+      window.sessionStorage.removeItem('onedriveTarget');
+      setOneDriveTarget(target);
+      if (target === 'letter') {
+        // Wait until the job loads so the dialog can be seeded from the
+        // existing application (otherwise saving would clear notes/action date).
+        setPendingLetterOneDrive(true);
+      } else {
+        setShowResumeModal(true);
+      }
       setShowOneDrivePicker(true);
     } else if (result?.flag === 'error') {
       setError(oneDriveError(result.reason));
     }
   }, []);
+
+  // Open and seed the cover letter dialog once the job is available after an
+  // OneDrive connection started from that dialog.
+  useEffect(() => {
+    if (!pendingLetterOneDrive || !job?.application) {
+      return;
+    }
+    const app = job.application;
+    setCoverLetterMode(
+      app.coverLetterKind ?? (app.coverLetterLinkUrl ? 'link' : 'text'),
+    );
+    setCoverLetterHtml(app.coverLetterHtml ?? '');
+    setCoverLetterLinkUrl(app.coverLetterLinkUrl ?? '');
+    setNotes(app.notes ?? '');
+    setActionDate(app.actionDate ?? '');
+    setShowLetterModal(true);
+    setPendingLetterOneDrive(false);
+  }, [pendingLetterOneDrive, job]);
 
   if (loading) {
     return (
@@ -208,10 +247,21 @@ export default function JobDetailPage() {
     }
   }
 
+  function openOneDrive(target: 'resume' | 'letter') {
+    setOneDriveTarget(target);
+    window.sessionStorage.setItem('onedriveTarget', target);
+    setShowOneDrivePicker(true);
+  }
+
   function handleOneDriveSelect(file: OneDriveFile) {
     setShowOneDrivePicker(false);
-    setResumeLinkUrl(file.webUrl);
-    clearFileSelection();
+    if (oneDriveTarget === 'letter') {
+      setCoverLetterMode('link');
+      setCoverLetterLinkUrl(file.webUrl);
+    } else {
+      setResumeLinkUrl(file.webUrl);
+      clearFileSelection();
+    }
   }
 
   async function handleResumeSave(e: FormEvent) {
@@ -276,11 +326,19 @@ export default function JobDetailPage() {
     setSavingLetter(true);
     setError(null);
     try {
-      await api.patch<Application>(`/api/applications/${application.id}`, {
-        coverLetterHtml: coverLetterHtml.trim() ? coverLetterHtml : null,
+      const body: Record<string, unknown> = {
         notes: notes.trim() ? notes : null,
         actionDate: actionDate || null,
-      });
+      };
+      if (coverLetterMode === 'link') {
+        body.coverLetterKind = 'link';
+        body.coverLetterLinkUrl = coverLetterLinkUrl.trim();
+      } else {
+        body.coverLetterKind = coverLetterHtml.trim() ? 'text' : null;
+        body.coverLetterHtml = coverLetterHtml.trim() ? coverLetterHtml : null;
+        body.coverLetterLinkUrl = null;
+      }
+      await api.patch<Application>(`/api/applications/${application.id}`, body);
       setShowLetterModal(false);
       await load();
     } catch (err) {
@@ -498,7 +556,12 @@ export default function JobDetailPage() {
                 type="button"
                 className="btn btn-sm btn-ghost"
                 onClick={() => {
+                  setCoverLetterMode(
+                    application.coverLetterKind ??
+                      (application.coverLetterLinkUrl ? 'link' : 'text'),
+                  );
                   setCoverLetterHtml(application.coverLetterHtml ?? '');
+                  setCoverLetterLinkUrl(application.coverLetterLinkUrl ?? '');
                   setNotes(application.notes ?? '');
                   setActionDate(application.actionDate ?? '');
                   setShowLetterModal(true);
@@ -580,7 +643,22 @@ export default function JobDetailPage() {
                 )}
               </span>
             </div>
-            {application.coverLetterHtml && (
+            {application.coverLetterKind === 'link' &&
+            application.coverLetterLinkUrl ? (
+              <div className="detail-row">
+                <span className="detail-label">Cover letter</span>
+                <span className="detail-value">
+                  <a
+                    className="break-word"
+                    href={application.coverLetterLinkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {application.coverLetterLinkUrl}
+                  </a>
+                </span>
+              </div>
+            ) : application.coverLetterHtml ? (
               <div className="detail-row">
                 <span className="detail-label">Cover letter</span>
                 <div>
@@ -599,7 +677,7 @@ export default function JobDetailPage() {
                   </button>
                 </div>
               </div>
-            )}
+            ) : null}
             {application.notes && (
               <div className="detail-row">
                 <span className="detail-label">Notes</span>
@@ -867,7 +945,7 @@ export default function JobDetailPage() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => setShowOneDrivePicker(true)}
+                  onClick={() => openOneDrive('resume')}
                 >
                   Browse OneDrive
                 </button>
@@ -897,6 +975,7 @@ export default function JobDetailPage() {
 
       {showOneDrivePicker && (
         <OneDrivePickerModal
+          noun={oneDriveTarget === 'letter' ? 'cover letter' : 'resume'}
           onSelect={handleOneDriveSelect}
           onClose={() => setShowOneDrivePicker(false)}
         />
@@ -916,14 +995,48 @@ export default function JobDetailPage() {
                 onChange={(e) => setActionDate(e.target.value)}
               />
             </label>
-            <label className="field">
+            <div className="field">
               <span>Cover letter</span>
-              <RichTextEditor
-                content={coverLetterHtml}
-                onChange={setCoverLetterHtml}
-                placeholder="Write or paste your cover letter here..."
-              />
-            </label>
+              <div className="btn-group">
+                <button
+                  type="button"
+                  className={`btn btn-sm ${coverLetterMode === 'text' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setCoverLetterMode('text')}
+                >
+                  Write text
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${coverLetterMode === 'link' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setCoverLetterMode('link')}
+                >
+                  Use a link
+                </button>
+              </div>
+              {coverLetterMode === 'text' ? (
+                <RichTextEditor
+                  content={coverLetterHtml}
+                  onChange={setCoverLetterHtml}
+                  placeholder="Write or paste your cover letter here..."
+                />
+              ) : (
+                <div className="field-row">
+                  <input
+                    type="url"
+                    placeholder="https://example.com/my-cover-letter.pdf"
+                    value={coverLetterLinkUrl}
+                    onChange={(e) => setCoverLetterLinkUrl(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => openOneDrive('letter')}
+                  >
+                    Browse OneDrive
+                  </button>
+                </div>
+              )}
+            </div>
             <label className="field">
               <span>Notes (optional)</span>
               <textarea
@@ -943,7 +1056,10 @@ export default function JobDetailPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={savingLetter}
+                disabled={
+                  savingLetter ||
+                  (coverLetterMode === 'link' && !coverLetterLinkUrl.trim())
+                }
               >
                 {savingLetter ? 'Saving…' : 'Save'}
               </button>

@@ -8,6 +8,7 @@ use App\Controller\ApplicationController;
 use App\Entity\Application;
 use App\Entity\Job;
 use App\Entity\JobSearch;
+use App\Enum\CoverLetterKind;
 use App\Enum\JobStatus;
 use App\Enum\ResumeKind;
 use App\Repository\ApplicationRepository;
@@ -194,6 +195,120 @@ final class ApplicationControllerTest extends ControllerTestCase
         $this->assertSame('<strong>Hello</strong>', $application->getCoverLetterHtml());
         $this->assertNull($application->getNotes());
         $this->assertSame('2026-10-01', $application->getActionDate()->format('Y-m-d'));
+    }
+
+    public function testUpdateSetsACoverLetterLink(): void
+    {
+        $search = $this->createJobSearch(4);
+        $job = $this->createJob(9, $search);
+        $application = $this->createApplication(5, $job);
+        $application->setCoverLetterKind(CoverLetterKind::Text);
+        $application->setCoverLetterHtml('<p>Old</p>');
+
+        $applicationRepository = $this->createMock(ApplicationRepository::class);
+        $applicationRepository->method('find')->with(5)->willReturn($application);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = $this->controller(null, $applicationRepository, $entityManager);
+        $this->bindController($controller);
+
+        $response = $controller->update(5, $this->jsonRequest('PATCH', '/api/applications/5', [
+            'coverLetterKind' => 'link',
+            'coverLetterLinkUrl' => 'https://example.com/cover.pdf',
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(CoverLetterKind::Link, $application->getCoverLetterKind());
+        $this->assertSame('https://example.com/cover.pdf', $application->getCoverLetterLinkUrl());
+        $this->assertNull($application->getCoverLetterHtml());
+        $data = $this->decodeJson($response);
+        $this->assertSame('link', $data['coverLetterKind']);
+        $this->assertSame('https://example.com/cover.pdf', $data['coverLetterLinkUrl']);
+    }
+
+    public function testUpdateRejectsAnInvalidCoverLetterLinkUrl(): void
+    {
+        $search = $this->createJobSearch(4);
+        $job = $this->createJob(9, $search);
+        $application = $this->createApplication(5, $job);
+        $applicationRepository = $this->createMock(ApplicationRepository::class);
+        $applicationRepository->method('find')->with(5)->willReturn($application);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->never())->method('flush');
+
+        $controller = $this->controller(null, $applicationRepository, $entityManager);
+        $this->bindController($controller);
+
+        $response = $controller->update(5, $this->jsonRequest('PATCH', '/api/applications/5', [
+            'coverLetterKind' => 'link',
+            'coverLetterLinkUrl' => 'not a url',
+        ]));
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $this->assertSame('A valid coverLetterLinkUrl is required for link cover letters.', $this->decodeJson($response)['error']);
+    }
+
+    public function testUpdateStoresSanitizedCoverLetterText(): void
+    {
+        $search = $this->createJobSearch(4);
+        $job = $this->createJob(9, $search);
+        $application = $this->createApplication(5, $job);
+        $application->setCoverLetterKind(CoverLetterKind::Link);
+        $application->setCoverLetterLinkUrl('https://example.com/old.pdf');
+
+        $applicationRepository = $this->createMock(ApplicationRepository::class);
+        $applicationRepository->method('find')->with(5)->willReturn($application);
+
+        $sanitizer = $this->createMock(HtmlSanitizer::class);
+        $sanitizer->method('sanitize')->willReturnCallback(
+            static fn (string $html): string => '<strong>' . $html . '</strong>'
+        );
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = $this->controller(null, $applicationRepository, $entityManager, $sanitizer);
+        $this->bindController($controller);
+
+        $response = $controller->update(5, $this->jsonRequest('PATCH', '/api/applications/5', [
+            'coverLetterKind' => 'text',
+            'coverLetterHtml' => 'Hello',
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(CoverLetterKind::Text, $application->getCoverLetterKind());
+        $this->assertSame('<strong>Hello</strong>', $application->getCoverLetterHtml());
+        $this->assertNull($application->getCoverLetterLinkUrl());
+    }
+
+    public function testUpdateClearsTheCoverLetter(): void
+    {
+        $search = $this->createJobSearch(4);
+        $job = $this->createJob(9, $search);
+        $application = $this->createApplication(5, $job);
+        $application->setCoverLetterKind(CoverLetterKind::Link);
+        $application->setCoverLetterLinkUrl('https://example.com/cover.pdf');
+
+        $applicationRepository = $this->createMock(ApplicationRepository::class);
+        $applicationRepository->method('find')->with(5)->willReturn($application);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = $this->controller(null, $applicationRepository, $entityManager);
+        $this->bindController($controller);
+
+        $response = $controller->update(5, $this->jsonRequest('PATCH', '/api/applications/5', [
+            'coverLetterKind' => null,
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertNull($application->getCoverLetterKind());
+        $this->assertNull($application->getCoverLetterHtml());
+        $this->assertNull($application->getCoverLetterLinkUrl());
     }
 
     public function testUpdateReturns404ForAnotherUsersApplication(): void

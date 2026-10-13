@@ -5,8 +5,9 @@ namespace App\Controller;
 use App\Entity\Application;
 use App\Entity\Job;
 use App\Entity\User;
-use App\Enum\ResumeKind;
+use App\Enum\CoverLetterKind;
 use App\Enum\JobStatus;
+use App\Enum\ResumeKind;
 use App\Repository\ApplicationRepository;
 use App\Repository\JobRepository;
 use App\Service\FileUploader;
@@ -69,10 +70,11 @@ class ApplicationController extends AbstractController
             return $this->json(['error' => $resumeError], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (array_key_exists('coverLetterHtml', $data)) {
-            $raw = $this->nullableString($data['coverLetterHtml']);
-            $application->setCoverLetterHtml(null !== $raw ? $this->htmlSanitizer->sanitize($raw) : null);
+        $coverLetterError = $this->applyCoverLetterFromData($application, $data);
+        if (null !== $coverLetterError) {
+            return $this->json(['error' => $coverLetterError], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
+
         if (array_key_exists('notes', $data)) {
             $application->setNotes($this->nullableString($data['notes']));
         }
@@ -107,10 +109,13 @@ class ApplicationController extends AbstractController
             }
         }
 
-        if (array_key_exists('coverLetterHtml', $data)) {
-            $raw = $this->nullableString($data['coverLetterHtml']);
-            $application->setCoverLetterHtml(null !== $raw ? $this->htmlSanitizer->sanitize($raw) : null);
+        if (array_key_exists('coverLetterKind', $data) || array_key_exists('coverLetterHtml', $data) || array_key_exists('coverLetterLinkUrl', $data)) {
+            $coverLetterError = $this->applyCoverLetterFromData($application, $data);
+            if (null !== $coverLetterError) {
+                return $this->json(['error' => $coverLetterError], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
+
         if (array_key_exists('notes', $data)) {
             $application->setNotes($this->nullableString($data['notes']));
         }
@@ -252,6 +257,64 @@ class ApplicationController extends AbstractController
         }
 
         return sprintf('Invalid resumeKind. Allowed values: %s, %s or null.', ResumeKind::Link->value, ResumeKind::File->value);
+    }
+
+    /**
+     * Applies the cover letter fields from a JSON payload. Supports:
+     *   coverLetterKind: "text" -> stores coverLetterHtml (sanitized)
+     *   coverLetterKind: "link" -> requires coverLetterLinkUrl
+     *   coverLetterKind: null   -> clears the cover letter
+     *
+     * For backwards compatibility, a bare coverLetterHtml (without coverLetterKind)
+     * is treated as text.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function applyCoverLetterFromData(Application $application, array $data): ?string
+    {
+        if (!array_key_exists('coverLetterKind', $data)) {
+            if (array_key_exists('coverLetterHtml', $data)) {
+                $raw = $this->nullableString($data['coverLetterHtml']);
+                $application->setCoverLetterKind(null !== $raw ? CoverLetterKind::Text : null);
+                $application->setCoverLetterHtml(null !== $raw ? $this->htmlSanitizer->sanitize($raw) : null);
+                $application->setCoverLetterLinkUrl(null);
+            }
+
+            return null;
+        }
+
+        $kind = $data['coverLetterKind'];
+
+        if (null === $kind || '' === $kind) {
+            $application->setCoverLetterKind(null);
+            $application->setCoverLetterHtml(null);
+            $application->setCoverLetterLinkUrl(null);
+
+            return null;
+        }
+
+        if (CoverLetterKind::Link->value === $kind) {
+            $linkUrl = trim((string) ($data['coverLetterLinkUrl'] ?? ''));
+            if ('' === $linkUrl || false === filter_var($linkUrl, FILTER_VALIDATE_URL)) {
+                return 'A valid coverLetterLinkUrl is required for link cover letters.';
+            }
+            $application->setCoverLetterKind(CoverLetterKind::Link);
+            $application->setCoverLetterHtml(null);
+            $application->setCoverLetterLinkUrl($linkUrl);
+
+            return null;
+        }
+
+        if (CoverLetterKind::Text->value === $kind) {
+            $raw = $this->nullableString($data['coverLetterHtml'] ?? null);
+            $application->setCoverLetterKind(null !== $raw ? CoverLetterKind::Text : null);
+            $application->setCoverLetterHtml(null !== $raw ? $this->htmlSanitizer->sanitize($raw) : null);
+            $application->setCoverLetterLinkUrl(null);
+
+            return null;
+        }
+
+        return sprintf('Invalid coverLetterKind. Allowed values: %s, %s or null.', CoverLetterKind::Text->value, CoverLetterKind::Link->value);
     }
 
     private function findOwnedApplication(int $id): ?Application

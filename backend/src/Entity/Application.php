@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\CoverLetterKind;
 use App\Enum\ResumeKind;
 use App\Repository\ApplicationRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -46,9 +47,17 @@ class Application
     #[Groups(['application.read'])]
     private ?string $resumeLinkUrl = null;
 
+    #[ORM\Column(type: Types::ENUM, enumType: CoverLetterKind::class, length: 10, nullable: true)]
+    #[Groups(['application.read'])]
+    private ?CoverLetterKind $coverLetterKind = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['application.read'])]
     private ?string $coverLetterHtml = null;
+
+    #[ORM\Column(length: 2048, nullable: true)]
+    #[Groups(['application.read'])]
+    private ?string $coverLetterLinkUrl = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['application.read'])]
@@ -183,6 +192,18 @@ class Application
         return $this;
     }
 
+    public function getCoverLetterKind(): ?CoverLetterKind
+    {
+        return $this->coverLetterKind;
+    }
+
+    public function setCoverLetterKind(?CoverLetterKind $coverLetterKind): static
+    {
+        $this->coverLetterKind = $coverLetterKind;
+
+        return $this;
+    }
+
     public function getCoverLetterHtml(): ?string
     {
         return $this->coverLetterHtml;
@@ -191,6 +212,18 @@ class Application
     public function setCoverLetterHtml(?string $coverLetterHtml): static
     {
         $this->coverLetterHtml = $coverLetterHtml;
+
+        return $this;
+    }
+
+    public function getCoverLetterLinkUrl(): ?string
+    {
+        return $this->coverLetterLinkUrl;
+    }
+
+    public function setCoverLetterLinkUrl(?string $coverLetterLinkUrl): static
+    {
+        $this->coverLetterLinkUrl = $coverLetterLinkUrl;
 
         return $this;
     }
