@@ -973,14 +973,6 @@ export default function JobDetailPage() {
         </Modal>
       )}
 
-      {showOneDrivePicker && (
-        <OneDrivePickerModal
-          noun={oneDriveTarget === 'letter' ? 'cover letter' : 'resume'}
-          onSelect={handleOneDriveSelect}
-          onClose={() => setShowOneDrivePicker(false)}
-        />
-      )}
-
       {showLetterModal && application && (
         <Modal
           title="Cover letter & notes"
@@ -1170,6 +1162,15 @@ export default function JobDetailPage() {
           applicationId={application?.id ?? null}
           onClose={() => setShowAiImport(false)}
           onSaved={() => void load()}
+        />
+      )}
+
+      {/* Rendered last so the picker stacks above any modal that opened it. */}
+      {showOneDrivePicker && (
+        <OneDrivePickerModal
+          noun={oneDriveTarget === 'letter' ? 'cover letter' : 'resume'}
+          onSelect={handleOneDriveSelect}
+          onClose={() => setShowOneDrivePicker(false)}
         />
       )}
     </div>
