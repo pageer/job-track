@@ -21,6 +21,7 @@ import {
   formatDateTime,
   formatFileSize,
   formatDate,
+  toDateInputValue,
   toDateTimeInputValue,
 } from '../utils';
 import { buildTimeline } from '../timeline';
@@ -50,6 +51,18 @@ const emptyInterviewForm: InterviewFormState = {
   interviewers: '',
   notes: '',
 };
+
+function todayInputValue(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function actionDateInputValue(value: string | null | undefined): string {
+  return value ? toDateInputValue(value) : todayInputValue();
+}
 
 export default function JobDetailPage() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -153,7 +166,7 @@ export default function JobDetailPage() {
     setCoverLetterHtml(app.coverLetterHtml ?? '');
     setCoverLetterLinkUrl(app.coverLetterLinkUrl ?? '');
     setNotes(app.notes ?? '');
-    setActionDate(app.actionDate ?? '');
+    setActionDate(actionDateInputValue(app.actionDate));
     setShowLetterModal(true);
     setPendingLetterOneDrive(false);
   }, [pendingLetterOneDrive, job]);
@@ -563,7 +576,7 @@ export default function JobDetailPage() {
                   setCoverLetterHtml(application.coverLetterHtml ?? '');
                   setCoverLetterLinkUrl(application.coverLetterLinkUrl ?? '');
                   setNotes(application.notes ?? '');
-                  setActionDate(application.actionDate ?? '');
+                  setActionDate(actionDateInputValue(application.actionDate));
                   setShowLetterModal(true);
                 }}
               >
