@@ -927,13 +927,13 @@ a:hover {
   height: 0;
 }
 
-/* ── Rendered cover letter preview ── */
+/* ── Collapsible rendered previews (cover letter, job description) ── */
 
-.cover-letter-preview {
+.collapsible-preview {
   line-height: 1.6;
 }
 
-.cover-letter-collapsed {
+.collapsible-collapsed {
   max-height: 6.4em;
   overflow: hidden;
   position: relative;
@@ -941,21 +941,21 @@ a:hover {
   -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
 }
 
-.cover-letter-expanded {
+.collapsible-expanded {
   max-height: none;
 }
 
-.cover-letter-toggle {
+.collapsible-toggle {
   margin-top: 0.4rem;
 }
 
-.cover-letter-preview img {
+.collapsible-preview img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius);
 }
 
-.cover-letter-preview a {
+.collapsible-preview a {
   color: var(--color-primary);
   text-decoration: underline;
 }

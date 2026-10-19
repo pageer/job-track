@@ -90,6 +90,7 @@ export default function JobDetailPage() {
   const [actionDate, setActionDate] = useState('');
   const [savingLetter, setSavingLetter] = useState(false);
   const [showFullLetter, setShowFullLetter] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const [pendingLetterOneDrive, setPendingLetterOneDrive] = useState(false);
 
   const [oneDriveTarget, setOneDriveTarget] = useState<'resume' | 'letter'>(
@@ -540,9 +541,16 @@ export default function JobDetailPage() {
         <section className="panel">
           <h2>Description</h2>
           <div
-            className="rich-text"
+            className={`rich-text pre-wrap collapsible-preview ${showFullDescription ? 'collapsible-expanded' : 'collapsible-collapsed'}`}
             dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
           />
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost collapsible-toggle"
+            onClick={() => setShowFullDescription((v) => !v)}
+          >
+            {showFullDescription ? 'Show less' : 'Show more'}
+          </button>
         </section>
       ) : null}
       {job.descriptionUrl ? (
@@ -676,14 +684,14 @@ export default function JobDetailPage() {
                 <span className="detail-label">Cover letter</span>
                 <div>
                   <div
-                    className={`cover-letter-preview ${showFullLetter ? 'cover-letter-expanded' : 'cover-letter-collapsed'}`}
+                    className={`collapsible-preview ${showFullLetter ? 'collapsible-expanded' : 'collapsible-collapsed'}`}
                     dangerouslySetInnerHTML={{
                       __html: application.coverLetterHtml,
                     }}
                   />
                   <button
                     type="button"
-                    className="btn btn-sm btn-ghost cover-letter-toggle"
+                    className="btn btn-sm btn-ghost collapsible-toggle"
                     onClick={() => setShowFullLetter((v) => !v)}
                   >
                     {showFullLetter ? 'Show less' : 'Show more'}
