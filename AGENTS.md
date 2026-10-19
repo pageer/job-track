@@ -2,6 +2,12 @@
 
 Job application tracker. Two apps: Symfony 7.4 API backend (`backend/`) + React 18 / Vite / TypeScript SPA (`frontend/`). The SPA is **served by Symfony**, not deployed as a separate host.
 
+## Git & review workflow (always follow)
+
+- **Never commit to Git without first asking the user.** This applies to commits, amends, and pushes — always confirm before staging or recording anything.
+- After completing a coding task, run the `/review-response` skill and prompt the user to review the changes.
+- After responding to the review, ask the user whether they want to re-review or whether you should commit the changes.
+
 ## Architecture facts that are not obvious
 
 - Vite's `outDir` is `../backend/public/build` with `base: '/build/'` (frontend/vite.config.ts). The frontend build is a build artifact of the backend app: `backend/public/build/` is gitignored. Do not hand-edit files there.

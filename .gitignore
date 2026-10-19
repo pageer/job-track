@@ -7,3 +7,6 @@ tags
 *.swo
 .DS_Store
 Thumbs.db
+review-comments.txt
+.vibediff.pid
+vibediff.log
