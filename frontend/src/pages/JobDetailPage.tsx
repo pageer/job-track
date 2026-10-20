@@ -40,6 +40,8 @@ interface JobFormState {
   descriptionUrl: string;
 }
 
+type ResumeMode = 'link' | 'file';
+
 interface InterviewFormState {
   date: string;
   interviewers: string;
@@ -74,24 +76,23 @@ export default function JobDetailPage() {
   const [jobForm, setJobForm] = useState<JobFormState | null>(null);
   const [savingJob, setSavingJob] = useState(false);
 
-  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [resumeMode, setResumeMode] = useState<ResumeMode>('link');
   const [resumeLinkUrl, setResumeLinkUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [showOneDrivePicker, setShowOneDrivePicker] = useState(false);
-  const [savingResume, setSavingResume] = useState(false);
+  const [savingApplication, setSavingApplication] = useState(false);
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [showLetterModal, setShowLetterModal] = useState(false);
   const [coverLetterMode, setCoverLetterMode] =
-    useState<CoverLetterKind>('text');
+    useState<CoverLetterKind>('link');
   const [coverLetterHtml, setCoverLetterHtml] = useState('');
   const [coverLetterLinkUrl, setCoverLetterLinkUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [actionDate, setActionDate] = useState('');
-  const [savingLetter, setSavingLetter] = useState(false);
   const [showFullLetter, setShowFullLetter] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const [pendingLetterOneDrive, setPendingLetterOneDrive] = useState(false);
+  const [pendingOneDriveDialog, setPendingOneDriveDialog] = useState(false);
 
   const [oneDriveTarget, setOneDriveTarget] = useState<'resume' | 'letter'>(
     'resume',
@@ -131,7 +132,31 @@ export default function JobDetailPage() {
     void load();
   }, [load]);
 
+  // Seeds every field of the combined application dialog from the saved
+  // application so a save never clobbers untouched values.
+  const openApplicationDialog = useCallback((app: Application) => {
+    setResumeMode(app.resumeKind === 'file' ? 'file' : 'link');
+    setResumeLinkUrl(
+      app.resumeKind === 'link' ? (app.resumeLinkUrl ?? '') : '',
+    );
+    setResumeFile(null);
+    if (resumeFileInputRef.current) {
+      resumeFileInputRef.current.value = '';
+    }
+    setCoverLetterMode(
+      app.coverLetterKind ??
+        (app.coverLetterLinkUrl || !app.coverLetterHtml ? 'link' : 'text'),
+    );
+    setCoverLetterHtml(app.coverLetterHtml ?? '');
+    setCoverLetterLinkUrl(app.coverLetterLinkUrl ?? '');
+    setNotes(app.notes ?? '');
+    setActionDate(actionDateInputValue(app.actionDate));
+    setShowApplicationModal(true);
+  }, []);
+
   // The OneDrive OAuth callback redirects back with ?onedrive=connected|error.
+  // Open the dialog for either target once the job has loaded (the redirect
+  // reloads the page, so any unsaved edits are gone anyway).
   useEffect(() => {
     const result = consumeOneDriveFlag();
     if (result?.flag === 'connected') {
@@ -141,36 +166,20 @@ export default function JobDetailPage() {
           : 'resume';
       window.sessionStorage.removeItem('onedriveTarget');
       setOneDriveTarget(target);
-      if (target === 'letter') {
-        // Wait until the job loads so the dialog can be seeded from the
-        // existing application (otherwise saving would clear notes/action date).
-        setPendingLetterOneDrive(true);
-      } else {
-        setShowResumeModal(true);
-      }
+      setPendingOneDriveDialog(true);
       setShowOneDrivePicker(true);
     } else if (result?.flag === 'error') {
       setError(oneDriveError(result.reason));
     }
   }, []);
 
-  // Open and seed the cover letter dialog once the job is available after an
-  // OneDrive connection started from that dialog.
   useEffect(() => {
-    if (!pendingLetterOneDrive || !job?.application) {
+    if (!pendingOneDriveDialog || !job?.application) {
       return;
     }
-    const app = job.application;
-    setCoverLetterMode(
-      app.coverLetterKind ?? (app.coverLetterLinkUrl ? 'link' : 'text'),
-    );
-    setCoverLetterHtml(app.coverLetterHtml ?? '');
-    setCoverLetterLinkUrl(app.coverLetterLinkUrl ?? '');
-    setNotes(app.notes ?? '');
-    setActionDate(actionDateInputValue(app.actionDate));
-    setShowLetterModal(true);
-    setPendingLetterOneDrive(false);
-  }, [pendingLetterOneDrive, job]);
+    openApplicationDialog(job.application);
+    setPendingOneDriveDialog(false);
+  }, [pendingOneDriveDialog, job, openApplicationDialog]);
 
   if (loading) {
     return (
@@ -273,42 +282,66 @@ export default function JobDetailPage() {
       setCoverLetterMode('link');
       setCoverLetterLinkUrl(file.webUrl);
     } else {
+      setResumeMode('link');
       setResumeLinkUrl(file.webUrl);
       clearFileSelection();
     }
   }
 
-  async function handleResumeSave(e: FormEvent) {
+  async function handleApplicationSave(e: FormEvent) {
     e.preventDefault();
     if (!application) {
       return;
     }
-    setSavingResume(true);
+    setSavingApplication(true);
     setError(null);
     try {
-      if (resumeFile) {
+      if (resumeMode === 'file' && resumeFile) {
         const fd = new FormData();
         fd.append('file', resumeFile);
         await api.postForm<Application>(
           `/api/applications/${application.id}/resume-file`,
           fd,
         );
-      } else if (resumeLinkUrl.trim()) {
-        await api.patch<Application>(`/api/applications/${application.id}`, {
-          resumeKind: 'link',
-          resumeLinkUrl: resumeLinkUrl.trim(),
-        });
       }
-      setShowResumeModal(false);
-      setResumeFile(null);
-      setResumeLinkUrl('');
+      const body: Record<string, unknown> = {
+        notes: notes.trim() ? notes : null,
+        actionDate: actionDate || null,
+      };
+      if (resumeMode === 'link') {
+        const resumeUrl = resumeLinkUrl.trim();
+        if (resumeUrl) {
+          body.resumeKind = 'link';
+          body.resumeLinkUrl = resumeUrl;
+        } else if (application.resumeKind === 'link') {
+          // The stored link was cleared in the input.
+          body.resumeKind = null;
+        }
+      }
+      if (coverLetterMode === 'link') {
+        const letterUrl = coverLetterLinkUrl.trim();
+        if (letterUrl) {
+          body.coverLetterKind = 'link';
+          body.coverLetterLinkUrl = letterUrl;
+        } else {
+          body.coverLetterKind = null;
+        }
+      } else {
+        body.coverLetterKind = coverLetterHtml.trim() ? 'text' : null;
+        body.coverLetterHtml = coverLetterHtml.trim() ? coverLetterHtml : null;
+        body.coverLetterLinkUrl = null;
+      }
+      await api.patch<Application>(`/api/applications/${application.id}`, body);
+      setShowApplicationModal(false);
       await load();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : 'Failed to save the resume.',
+        err instanceof ApiError
+          ? err.message
+          : 'Failed to save the application.',
       );
     } finally {
-      setSavingResume(false);
+      setSavingApplication(false);
     }
   }
 
@@ -329,36 +362,6 @@ export default function JobDetailPage() {
       setError(
         err instanceof ApiError ? err.message : 'Failed to clear the resume.',
       );
-    }
-  }
-
-  async function handleLetterSave(e: FormEvent) {
-    e.preventDefault();
-    if (!application) {
-      return;
-    }
-    setSavingLetter(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = {
-        notes: notes.trim() ? notes : null,
-        actionDate: actionDate || null,
-      };
-      if (coverLetterMode === 'link') {
-        body.coverLetterKind = 'link';
-        body.coverLetterLinkUrl = coverLetterLinkUrl.trim();
-      } else {
-        body.coverLetterKind = coverLetterHtml.trim() ? 'text' : null;
-        body.coverLetterHtml = coverLetterHtml.trim() ? coverLetterHtml : null;
-        body.coverLetterLinkUrl = null;
-      }
-      await api.patch<Application>(`/api/applications/${application.id}`, body);
-      setShowLetterModal(false);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save.');
-    } finally {
-      setSavingLetter(false);
     }
   }
 
@@ -569,26 +572,9 @@ export default function JobDetailPage() {
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
-                onClick={() => setShowResumeModal(true)}
+                onClick={() => openApplicationDialog(application)}
               >
-                Resume
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                onClick={() => {
-                  setCoverLetterMode(
-                    application.coverLetterKind ??
-                      (application.coverLetterLinkUrl ? 'link' : 'text'),
-                  );
-                  setCoverLetterHtml(application.coverLetterHtml ?? '');
-                  setCoverLetterLinkUrl(application.coverLetterLinkUrl ?? '');
-                  setNotes(application.notes ?? '');
-                  setActionDate(actionDateInputValue(application.actionDate));
-                  setShowLetterModal(true);
-                }}
-              >
-                Cover letter / notes
+                Edit application
               </button>
               <button
                 type="button"
@@ -934,72 +920,12 @@ export default function JobDetailPage() {
         </Modal>
       )}
 
-      {showResumeModal && application && (
-        <Modal title="Set resume" onClose={() => setShowResumeModal(false)}>
-          <form onSubmit={handleResumeSave} className="form">
-            <label className="field">
-              <span>Upload a file</span>
-              <input
-                ref={resumeFileInputRef}
-                type="file"
-                onChange={(e) => {
-                  setResumeFile(e.target.files?.[0] ?? null);
-                  setResumeLinkUrl('');
-                }}
-              />
-            </label>
-            <div className="divider">or</div>
-            <label className="field">
-              <span>Use a link</span>
-              <div className="field-row">
-                <input
-                  type="url"
-                  placeholder="https://example.com/my-resume.pdf"
-                  value={resumeLinkUrl}
-                  onChange={(e) => {
-                    setResumeLinkUrl(e.target.value);
-                    if (resumeFile) {
-                      clearFileSelection();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => openOneDrive('resume')}
-                >
-                  Browse OneDrive
-                </button>
-              </div>
-            </label>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowResumeModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={
-                  savingResume || (!resumeFile && !resumeLinkUrl.trim())
-                }
-              >
-                {savingResume ? 'Saving…' : 'Save resume'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {showLetterModal && application && (
+      {showApplicationModal && application && (
         <Modal
-          title="Cover letter & notes"
-          onClose={() => setShowLetterModal(false)}
+          title="Edit application"
+          onClose={() => setShowApplicationModal(false)}
         >
-          <form onSubmit={handleLetterSave} className="form">
+          <form onSubmit={handleApplicationSave} className="form">
             <label className="field">
               <span>Action date (date you applied)</span>
               <input
@@ -1009,15 +935,67 @@ export default function JobDetailPage() {
               />
             </label>
             <div className="field">
-              <span>Cover letter</span>
+              <span>Resume</span>
               <div className="btn-group">
                 <button
                   type="button"
-                  className={`btn btn-sm ${coverLetterMode === 'text' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setCoverLetterMode('text')}
+                  className={`btn btn-sm ${resumeMode === 'link' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setResumeMode('link')}
                 >
-                  Write text
+                  Use a link
                 </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${resumeMode === 'file' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setResumeMode('file')}
+                >
+                  Upload file
+                </button>
+              </div>
+              {resumeMode === 'link' ? (
+                <div className="field-row">
+                  <input
+                    type="url"
+                    placeholder="https://example.com/my-resume.pdf"
+                    value={resumeLinkUrl}
+                    onChange={(e) => {
+                      setResumeLinkUrl(e.target.value);
+                      if (resumeFile) {
+                        clearFileSelection();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => openOneDrive('resume')}
+                  >
+                    Browse OneDrive
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    ref={resumeFileInputRef}
+                    type="file"
+                    onChange={(e) => {
+                      setResumeFile(e.target.files?.[0] ?? null);
+                      setResumeLinkUrl('');
+                    }}
+                  />
+                  {application.resumeKind === 'file' && !resumeFile && (
+                    <small className="muted">
+                      Current file: {application.resumeFileName} (
+                      {formatFileSize(application.resumeFileSize)}). Select a
+                      new file to replace it.
+                    </small>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="field">
+              <span>Cover letter</span>
+              <div className="btn-group">
                 <button
                   type="button"
                   className={`btn btn-sm ${coverLetterMode === 'link' ? 'btn-primary' : 'btn-ghost'}`}
@@ -1025,14 +1003,15 @@ export default function JobDetailPage() {
                 >
                   Use a link
                 </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${coverLetterMode === 'text' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setCoverLetterMode('text')}
+                >
+                  Write text
+                </button>
               </div>
-              {coverLetterMode === 'text' ? (
-                <RichTextEditor
-                  content={coverLetterHtml}
-                  onChange={setCoverLetterHtml}
-                  placeholder="Write or paste your cover letter here..."
-                />
-              ) : (
+              {coverLetterMode === 'link' ? (
                 <div className="field-row">
                   <input
                     type="url"
@@ -1048,6 +1027,12 @@ export default function JobDetailPage() {
                     Browse OneDrive
                   </button>
                 </div>
+              ) : (
+                <RichTextEditor
+                  content={coverLetterHtml}
+                  onChange={setCoverLetterHtml}
+                  placeholder="Write or paste your cover letter here..."
+                />
               )}
             </div>
             <label className="field">
@@ -1062,19 +1047,16 @@ export default function JobDetailPage() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => setShowLetterModal(false)}
+                onClick={() => setShowApplicationModal(false)}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={
-                  savingLetter ||
-                  (coverLetterMode === 'link' && !coverLetterLinkUrl.trim())
-                }
+                disabled={savingApplication}
               >
-                {savingLetter ? 'Saving…' : 'Save'}
+                {savingApplication ? 'Saving…' : 'Save'}
               </button>
             </div>
           </form>
