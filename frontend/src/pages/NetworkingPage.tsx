@@ -74,11 +74,17 @@ export default function NetworkingPage() {
 
   const [showPersonModal, setShowPersonModal] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
-  const [personContacts, setPersonContacts] = useState<Contact[]>([]);
   const [personForm, setPersonForm] = useState<PersonForm>(emptyPersonForm());
   const [savingPerson, setSavingPerson] = useState(false);
 
+  const [expandedPeople, setExpandedPeople] = useState<Set<number>>(new Set());
+  const [contactHistory, setContactHistory] = useState<
+    Record<number, Contact[]>
+  >({});
+  const [historyLoading, setHistoryLoading] = useState<Set<number>>(new Set());
+
   const [showContactModal, setShowContactModal] = useState(false);
+  const [contactPerson, setContactPerson] = useState<Person | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [contactForm, setContactForm] =
     useState<ContactForm>(emptyContactForm());
@@ -107,23 +113,42 @@ export default function NetworkingPage() {
     void load();
   }, [load]);
 
-  const refreshPersonDetail = useCallback(async (personId: number) => {
+  const loadContactHistory = useCallback(async (personId: number) => {
+    setHistoryLoading((prev) => new Set(prev).add(personId));
     try {
       const detail = await api.get<PersonDetail>(`/api/people/${personId}`);
-      setPersonContacts(detail.contacts);
+      setContactHistory((prev) => ({ ...prev, [personId]: detail.contacts }));
     } catch {
       // The page-level error will surface on the next reload.
+    } finally {
+      setHistoryLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(personId);
+        return next;
+      });
     }
   }, []);
 
-  async function openPerson(person: Person | null) {
+  function togglePersonHistory(person: Person) {
+    const isExpanded = expandedPeople.has(person.id);
+    setExpandedPeople((prev) => {
+      const next = new Set(prev);
+      if (isExpanded) {
+        next.delete(person.id);
+      } else {
+        next.add(person.id);
+      }
+      return next;
+    });
+    if (!isExpanded && contactHistory[person.id] === undefined) {
+      void loadContactHistory(person.id);
+    }
+  }
+
+  function openPerson(person: Person | null) {
     setEditingPerson(person);
     setPersonForm(person ? formFromPerson(person) : emptyPersonForm());
-    setPersonContacts(person ? [] : []);
     setShowPersonModal(true);
-    if (person) {
-      await refreshPersonDetail(person.id);
-    }
   }
 
   async function handlePersonSubmit(e: FormEvent) {
@@ -182,6 +207,16 @@ export default function NetworkingPage() {
     try {
       await api.delete(`/api/people/${person.id}`);
       setShowPersonModal(false);
+      setExpandedPeople((prev) => {
+        const next = new Set(prev);
+        next.delete(person.id);
+        return next;
+      });
+      setContactHistory((prev) => {
+        const next = { ...prev };
+        delete next[person.id];
+        return next;
+      });
       await load();
     } catch (err) {
       setError(
@@ -190,7 +225,8 @@ export default function NetworkingPage() {
     }
   }
 
-  function openContact(contact: Contact | null) {
+  function openContact(person: Person, contact: Contact | null) {
+    setContactPerson(person);
     setEditingContact(contact);
     setContactForm(contact ? formFromContact(contact) : emptyContactForm());
     setShowContactModal(true);
@@ -198,14 +234,14 @@ export default function NetworkingPage() {
 
   async function handleContactSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!editingPerson || !contactForm.date) {
+    if (!contactPerson || !contactForm.date) {
       return;
     }
     setSavingContact(true);
     setError(null);
     try {
       const body = toContactPayload(contactForm);
-      const base = `/api/people/${editingPerson.id}/contacts`;
+      const base = `/api/people/${contactPerson.id}/contacts`;
       if (editingContact) {
         await api.patch(`${base}/${editingContact.id}`, body);
       } else {
@@ -213,7 +249,7 @@ export default function NetworkingPage() {
       }
       setShowContactModal(false);
       await load();
-      await refreshPersonDetail(editingPerson.id);
+      await loadContactHistory(contactPerson.id);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Failed to save the contact.',
@@ -223,20 +259,15 @@ export default function NetworkingPage() {
     }
   }
 
-  async function handleContactDelete(contact: Contact) {
-    if (!editingPerson) {
-      return;
-    }
-    if (!window.confirm(`Delete this contact from ${editingPerson.name}?`)) {
+  async function handleContactDelete(person: Person, contact: Contact) {
+    if (!window.confirm(`Delete this contact from ${person.name}?`)) {
       return;
     }
     setError(null);
     try {
-      await api.delete(
-        `/api/people/${editingPerson.id}/contacts/${contact.id}`,
-      );
+      await api.delete(`/api/people/${person.id}/contacts/${contact.id}`);
       await load();
-      await refreshPersonDetail(editingPerson.id);
+      await loadContactHistory(person.id);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Failed to delete the contact.',
@@ -358,6 +389,78 @@ export default function NetworkingPage() {
                   <span>No contact yet</span>
                 )}
               </div>
+              <button
+                type="button"
+                className="card-expand-toggle"
+                aria-expanded={expandedPeople.has(person.id)}
+                aria-label="Toggle contact history"
+                onClick={() => togglePersonHistory(person)}
+              >
+                <span className="card-expand-icon" aria-hidden="true">
+                  {expandedPeople.has(person.id) ? '−' : '+'}
+                </span>
+              </button>
+              {expandedPeople.has(person.id) && (
+                <div className="card-expansion">
+                  <div className="section-title-row">
+                    <h3>Contact history</h3>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => openContact(person, null)}
+                    >
+                      Add contact
+                    </button>
+                  </div>
+                  {historyLoading.has(person.id) ? (
+                    <p className="modal-help">Loading…</p>
+                  ) : (contactHistory[person.id] ?? []).length === 0 ? (
+                    <p className="modal-help">
+                      No contacts recorded for {person.name} yet.
+                    </p>
+                  ) : (
+                    <ul className="contact-history">
+                      {(contactHistory[person.id] ?? []).map((contact) => (
+                        <li key={contact.id} className="contact-history-item">
+                          <div className="card-title-row">
+                            <span className="card-title">
+                              {formatDate(contact.date)}
+                            </span>
+                            <div className="btn-group">
+                              {contact.needsFollowUp && (
+                                <span className="badge badge-no_response">
+                                  Follow-up
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => openContact(person, contact)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-danger-ghost"
+                                onClick={() =>
+                                  void handleContactDelete(person, contact)
+                                }
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                          {contact.description && (
+                            <div className="card-meta">
+                              {contact.description}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -500,71 +603,15 @@ export default function NetworkingPage() {
               </button>
             </div>
           </form>
-
-          {editingPerson && (
-            <section className="modal-section">
-              <div className="section-title-row">
-                <h3>Contact history</h3>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => openContact(null)}
-                >
-                  Add contact
-                </button>
-              </div>
-              {personContacts.length === 0 ? (
-                <p className="modal-help">
-                  No contacts recorded for {editingPerson.name} yet.
-                </p>
-              ) : (
-                <ul className="card-list">
-                  {personContacts.map((contact) => (
-                    <li key={contact.id} className="card">
-                      <div className="card-title-row">
-                        <span className="card-title">
-                          {formatDate(contact.date)}
-                        </span>
-                        <div className="btn-group">
-                          {contact.needsFollowUp && (
-                            <span className="badge badge-no_response">
-                              Follow-up
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => openContact(contact)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger-ghost"
-                            onClick={() => void handleContactDelete(contact)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      {contact.description && (
-                        <div className="card-meta">{contact.description}</div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
         </Modal>
       )}
 
-      {showContactModal && editingPerson && (
+      {showContactModal && contactPerson && (
         <Modal
           title={
             editingContact
               ? 'Edit contact'
-              : `Add contact for ${editingPerson.name}`
+              : `Add contact for ${contactPerson.name}`
           }
           onClose={() => setShowContactModal(false)}
         >
