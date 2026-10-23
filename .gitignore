@@ -3,6 +3,8 @@ backend/public/build/
 package-lock.json
 .env
 tags
+tags.temp
+tags.lock
 *.swp
 *.swo
 .DS_Store
