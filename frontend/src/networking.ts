@@ -43,6 +43,8 @@ export interface PersonForm {
   notes: string;
   companyId: string;
   newCompanyName: string;
+  initialContactNotes: string;
+  initialContactNeedsFollowUp: boolean;
 }
 
 export function toPersonPayload(form: PersonForm): {

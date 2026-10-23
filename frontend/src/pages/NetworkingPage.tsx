@@ -33,6 +33,8 @@ function emptyPersonForm(): PersonForm {
     notes: '',
     companyId: '',
     newCompanyName: '',
+    initialContactNotes: '',
+    initialContactNeedsFollowUp: false,
   };
 }
 
@@ -44,6 +46,8 @@ function formFromPerson(person: Person): PersonForm {
     notes: person.notes ?? '',
     companyId: person.companyId ? String(person.companyId) : '',
     newCompanyName: '',
+    initialContactNotes: '',
+    initialContactNeedsFollowUp: false,
   };
 }
 
@@ -134,11 +138,33 @@ export default function NetworkingPage() {
       const body = toPersonPayload(personForm);
       if (editingPerson) {
         await api.patch(`/api/people/${editingPerson.id}`, body);
+        setShowPersonModal(false);
+        await load();
       } else {
-        await api.post('/api/people', body);
+        const created = await api.post<Person>('/api/people', body);
+        const initialNotes = personForm.initialContactNotes.trim();
+        if (initialNotes) {
+          try {
+            await api.post(`/api/people/${created.id}/contacts`, {
+              date: todayDateKey(),
+              description: initialNotes,
+              needsFollowUp: personForm.initialContactNeedsFollowUp,
+            });
+          } catch (err) {
+            setError(
+              err instanceof ApiError
+                ? err.message
+                : 'Person created but failed to add the initial contact.',
+            );
+            setShowPersonModal(false);
+            await load();
+            setSavingPerson(false);
+            return;
+          }
+        }
+        setShowPersonModal(false);
+        await load();
       }
-      setShowPersonModal(false);
-      await load();
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Failed to save the person.',
@@ -417,6 +443,37 @@ export default function NetworkingPage() {
                 placeholder="How you know them, context, etc."
               />
             </label>
+            {!editingPerson && (
+              <>
+                <label className="field">
+                  <span>Initial contact notes (optional)</span>
+                  <textarea
+                    rows={3}
+                    value={personForm.initialContactNotes}
+                    onChange={(e) =>
+                      setPersonForm({
+                        ...personForm,
+                        initialContactNotes: e.target.value,
+                      })
+                    }
+                    placeholder="e.g. Coffee chat, met at event"
+                  />
+                </label>
+                <label className="check-field">
+                  <input
+                    type="checkbox"
+                    checked={personForm.initialContactNeedsFollowUp}
+                    onChange={(e) =>
+                      setPersonForm({
+                        ...personForm,
+                        initialContactNeedsFollowUp: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>This needs a follow-up</span>
+                </label>
+              </>
+            )}
             <div className="form-actions">
               {editingPerson && (
                 <button

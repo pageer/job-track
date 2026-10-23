@@ -117,6 +117,8 @@ describe('toPersonPayload', () => {
       notes: '',
       companyId: '',
       newCompanyName: '',
+      initialContactNotes: '',
+      initialContactNeedsFollowUp: false,
       ...overrides,
     };
   }
