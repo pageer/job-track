@@ -315,11 +315,27 @@ a:hover {
   gap: 0.4rem;
 }
 
+.filter-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .filter-label {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text-muted);
   margin-right: 0.2rem;
+}
+
+.filter-search {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.filter-search .input {
+  padding: 0.35rem 0.6rem;
 }
 
 .input {

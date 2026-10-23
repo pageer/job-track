@@ -69,6 +69,7 @@ export default function SearchDetailPage() {
   const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(
     defaultActiveStatuses,
   );
+  const [jobFilter, setJobFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortKey>('createdAt');
 
   const load = useCallback(async () => {
@@ -196,6 +197,15 @@ export default function SearchDetailPage() {
     setActiveStatuses(defaultActiveStatuses);
   }
 
+  function handleJobFilterChange(value: string) {
+    setJobFilter(value);
+    if (value.trim()) {
+      setActiveStatuses(new Set(JOB_STATUSES));
+    } else if (activeStatuses.size === JOB_STATUSES.length) {
+      setActiveStatuses(defaultActiveStatuses);
+    }
+  }
+
   const jobs = useMemo(() => search?.jobs ?? [], [search]);
 
   const jobCounts = jobs.reduce<Record<string, number>>((acc, j) => {
@@ -204,7 +214,14 @@ export default function SearchDetailPage() {
   }, {});
 
   const filteredAndSorted = useMemo(() => {
-    const filtered = jobs.filter((j) => activeStatuses.has(j.status));
+    const query = jobFilter.trim().toLowerCase();
+    const filtered = jobs.filter(
+      (j) =>
+        activeStatuses.has(j.status) &&
+        (!query ||
+          j.title.toLowerCase().includes(query) ||
+          j.company.toLowerCase().includes(query)),
+    );
 
     return [...filtered].sort((a, b) => {
       if (sortBy === 'actionDate') {
@@ -217,7 +234,7 @@ export default function SearchDetailPage() {
       }
       return b.createdAt.localeCompare(a.createdAt);
     });
-  }, [jobs, activeStatuses, sortBy]);
+  }, [jobs, activeStatuses, jobFilter, sortBy]);
 
   return (
     <div className="page">
@@ -266,37 +283,52 @@ export default function SearchDetailPage() {
       </div>
 
       {!loading && jobs.length > 0 && (
-        <div className="filter-bar">
-          <span className="filter-label">Status:</span>
-          {JOB_STATUSES.map((status) => {
-            const count = jobCounts[status] ?? 0;
-            const active = activeStatuses.has(status);
-            return (
-              <button
-                key={status}
-                type="button"
-                className={`badge badge-${status} badge-clickable ${active ? 'badge-active' : 'badge-inactive'}`}
-                onClick={() => toggleStatus(status)}
-                disabled={count === 0}
-              >
-                {JOB_STATUS_LABELS[status]}: {count}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={selectAllStatuses}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={selectDefaultStatuses}
-          >
-            Default
-          </button>
+        <div className="filter-stack">
+          <div className="filter-bar">
+            <div className="filter-search">
+              <span className="filter-label">Filter:</span>
+              <input
+                type="search"
+                className="input"
+                value={jobFilter}
+                onChange={(e) => handleJobFilterChange(e.target.value)}
+                placeholder="Title or company"
+                aria-label="Filter jobs by title or company"
+              />
+            </div>
+          </div>
+          <div className="filter-bar">
+            <span className="filter-label">Status:</span>
+            {JOB_STATUSES.map((status) => {
+              const count = jobCounts[status] ?? 0;
+              const active = activeStatuses.has(status);
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  className={`badge badge-${status} badge-clickable ${active ? 'badge-active' : 'badge-inactive'}`}
+                  onClick={() => toggleStatus(status)}
+                  disabled={count === 0}
+                >
+                  {JOB_STATUS_LABELS[status]}: {count}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={selectAllStatuses}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={selectDefaultStatuses}
+            >
+              Default
+            </button>
+          </div>
         </div>
       )}
 
