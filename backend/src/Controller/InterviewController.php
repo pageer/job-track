@@ -7,6 +7,7 @@ use App\Entity\Contact;
 use App\Entity\Interview;
 use App\Entity\Person;
 use App\Entity\User;
+use App\Enum\JobStatus;
 use App\Repository\ApplicationRepository;
 use App\Repository\ContactRepository;
 use App\Repository\InterviewRepository;
@@ -60,6 +61,11 @@ class InterviewController extends AbstractController
         $interview->setDate($date);
         $interview->setInterviewers($this->parseInterviewers($data['interviewers'] ?? []));
         $interview->setNotes($this->nullableString($data['notes'] ?? null));
+
+        $job = $application->getJob();
+        if (null !== $job && JobStatus::Applied === $job->getStatus()) {
+            $job->setStatus(JobStatus::InProgress);
+        }
 
         $this->entityManager->persist($interview);
         $this->syncNetworkingForInterview($interview);
