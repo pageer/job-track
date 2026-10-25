@@ -29,9 +29,6 @@ export default function OneDrivePickerModal({
       const s = await api.get<OneDriveStatus>('/api/onedrive/status');
       setStatus(s);
       setError(null);
-      if (!selectedFolder) {
-        setSelectedFolder(s.folderPath);
-      }
 
       return s;
     } catch (err) {
@@ -44,16 +41,15 @@ export default function OneDrivePickerModal({
 
       return null;
     }
-  }, [selectedFolder]);
+  }, []);
 
   const loadFiles = useCallback(
-    async (folder?: string) => {
+    async (folder: string) => {
       setLoadingFiles(true);
       setError(null);
       try {
-        const folderToLoad = folder ?? selectedFolder ?? status?.folderPath ?? '';
-        const url = folderToLoad
-          ? `/api/onedrive/files?folder=${encodeURIComponent(folderToLoad)}`
+        const url = folder
+          ? `/api/onedrive/files?folder=${encodeURIComponent(folder)}`
           : '/api/onedrive/files';
         const data = await api.get<{ files: OneDriveFile[]; folderPath?: string }>(
           url,
@@ -82,14 +78,17 @@ export default function OneDrivePickerModal({
         setLoadingFiles(false);
       }
     },
-    [loadStatus, selectedFolder, status?.folderPath],
+    [loadStatus],
   );
 
   useEffect(() => {
     void (async () => {
       const s = await loadStatus();
       if (s?.connected) {
-        await loadFiles(s.folderPath);
+        const folders = s.folders?.length ? s.folders : s.folderPath ? [s.folderPath] : [];
+        const initial = s.folderPath ?? folders[0] ?? '';
+        setSelectedFolder(initial);
+        await loadFiles(initial);
       }
     })();
   }, [loadStatus, loadFiles]);
