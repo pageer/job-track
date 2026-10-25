@@ -252,8 +252,12 @@ export default function JobDetailPage() {
   async function handleCreateApplication() {
     setError(null);
     try {
-      await api.post<Application>(`/api/jobs/${jobId}/application`, {});
+      const app = await api.post<Application>(
+        `/api/jobs/${jobId}/application`,
+        {},
+      );
       await load();
+      openApplicationDialog(app);
     } catch (err) {
       setError(
         err instanceof ApiError
