@@ -313,6 +313,16 @@ a:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+  justify-content: space-between;
+}
+
+.filter-bar .filter-label {
+  flex: 1 1 auto;
+}
+
+.filter-bar .muted {
+  margin-left: auto;
+  text-align: right;
 }
 
 .filter-stack {

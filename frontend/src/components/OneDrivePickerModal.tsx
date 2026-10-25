@@ -202,11 +202,10 @@ export default function OneDrivePickerModal({
               autoFocus
             />
           </label>
+          <span className="muted">
+            {account ? `Connected as ${account}` : ''}
+          </span>
         </div>
-        <p className="muted">
-          {account ? `Connected as ${account} — ` : ''}folder &ldquo;
-          {selectedFolder || folders[0]}&rdquo;
-        </p>
         {loadingFiles ? (
           <div className="spinner" aria-label="Loading files" />
         ) : filtered.length === 0 ? (
