@@ -40,6 +40,17 @@ class OneDriveClient
         return $this->folderPath;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function getFolderPaths(): array
+    {
+        $paths = array_map('trim', explode(',', $this->folderPath));
+        $paths = array_values(array_filter($paths, static fn (string $p): bool => '' !== $p));
+
+        return $paths;
+    }
+
     public function getRedirectUri(): string
     {
         return $this->redirectUri;
@@ -130,13 +141,14 @@ class OneDriveClient
     }
 
     /**
-     * Lists the files (no folders) in the configured OneDrive folder.
+     * Lists the files (no folders) in the given OneDrive folder.
      *
      * @return list<array{id: string, name: string, size: int|null, lastModifiedDateTime: string|null, webUrl: string, mimeType: string|null}>
      */
-    public function listFiles(string $accessToken): array
+    public function listFiles(string $accessToken, ?string $folderPath = null): array
     {
-        $encoded = implode('/', array_map('rawurlencode', explode('/', trim($this->folderPath, '/'))));
+        $folderPath = $folderPath ?? $this->folderPath;
+        $encoded = implode('/', array_map('rawurlencode', explode('/', trim($folderPath, '/'))));
 
         $url = self::GRAPH_BASE . '/me/drive/root' . ('' === $encoded ? '/children' : ':/' . $encoded . ':/children');
         // `folder` must be selected, otherwise Graph omits the facet and the folder

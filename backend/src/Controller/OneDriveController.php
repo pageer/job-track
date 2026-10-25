@@ -35,12 +35,15 @@ class OneDriveController extends AbstractController
         $user = $this->getUser();
         $token = $this->tokenRepository->findForUser($user->getId());
 
+        $folders = $this->oneDriveClient->getFolderPaths();
+
         return $this->json([
             'clientConfigured' => $this->oneDriveClient->isConfigured(),
             'connected' => null !== $token,
             'accountEmail' => $token?->getAccountEmail(),
             'accountDisplayName' => $token?->getAccountDisplayName(),
-            'folderPath' => $this->oneDriveClient->getFolderPath(),
+            'folderPath' => $folders[0] ?? null,
+            'folders' => $folders,
         ]);
     }
 
@@ -166,7 +169,7 @@ class OneDriveController extends AbstractController
     }
 
     #[Route('/files', name: 'files', methods: ['GET'])]
-    public function files(): JsonResponse
+    public function files(Request $request): JsonResponse
     {
         if (!$this->oneDriveClient->isConfigured()) {
             return $this->json(['error' => 'OneDrive is not configured.'], Response::HTTP_SERVICE_UNAVAILABLE);
@@ -177,6 +180,16 @@ class OneDriveController extends AbstractController
         $token = $this->tokenRepository->findForUser($user->getId());
         if (null === $token) {
             return $this->json(['error' => 'Connect your OneDrive account to browse files.'], Response::HTTP_CONFLICT);
+        }
+
+        $folderParam = $request->query->get('folder');
+        $folders = $this->oneDriveClient->getFolderPaths();
+        $folderPath = is_string($folderParam) && in_array($folderParam, $folders, true)
+            ? $folderParam
+            : ($folders[0] ?? null);
+
+        if (null === $folderPath) {
+            return $this->json(['files' => [], 'folderPath' => null, 'folders' => []]);
         }
 
         try {
@@ -190,7 +203,7 @@ class OneDriveController extends AbstractController
         }
 
         try {
-            $files = $this->oneDriveClient->listFiles($accessToken);
+            $files = $this->oneDriveClient->listFiles($accessToken, $folderPath);
         } catch (OneDriveAuthException) {
             $this->expireConnection($token);
 
@@ -201,7 +214,8 @@ class OneDriveController extends AbstractController
 
         return $this->json([
             'files' => $files,
-            'folderPath' => $this->oneDriveClient->getFolderPath(),
+            'folderPath' => $folderPath,
+            'folders' => $folders,
         ]);
     }
 

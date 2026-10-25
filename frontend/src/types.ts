@@ -123,6 +123,7 @@ export interface OneDriveStatus {
   accountEmail: string | null;
   accountDisplayName: string | null;
   folderPath: string;
+  folders?: string[];
 }
 
 export interface CoverLetter {

@@ -22,12 +22,16 @@ export default function OneDrivePickerModal({
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
 
   const loadStatus = useCallback(async () => {
     try {
       const s = await api.get<OneDriveStatus>('/api/onedrive/status');
       setStatus(s);
       setError(null);
+      if (!selectedFolder) {
+        setSelectedFolder(s.folderPath);
+      }
 
       return s;
     } catch (err) {
@@ -40,42 +44,52 @@ export default function OneDrivePickerModal({
 
       return null;
     }
-  }, []);
+  }, [selectedFolder]);
 
-  const loadFiles = useCallback(async () => {
-    setLoadingFiles(true);
-    setError(null);
-    try {
-      const data = await api.get<{ files: OneDriveFile[] }>(
-        '/api/onedrive/files',
-      );
-      setFiles(data.files);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        // Token expired or revoked; the server removed it.
-        const fresh = await loadStatus();
-        if (fresh && !fresh.connected) {
+  const loadFiles = useCallback(
+    async (folder?: string) => {
+      setLoadingFiles(true);
+      setError(null);
+      try {
+        const folderToLoad = folder ?? selectedFolder ?? status?.folderPath ?? '';
+        const url = folderToLoad
+          ? `/api/onedrive/files?folder=${encodeURIComponent(folderToLoad)}`
+          : '/api/onedrive/files';
+        const data = await api.get<{ files: OneDriveFile[]; folderPath?: string }>(
+          url,
+        );
+        setFiles(data.files);
+        if (data.folderPath) {
+          setSelectedFolder(data.folderPath);
+        }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) {
+          // Token expired or revoked; the server removed it.
+          const fresh = await loadStatus();
+          if (fresh && !fresh.connected) {
+            setError(
+              'Your OneDrive connection has expired. Please connect again.',
+            );
+          }
+        } else {
           setError(
-            'Your OneDrive connection has expired. Please connect again.',
+            err instanceof ApiError
+              ? err.message
+              : 'Failed to load files from OneDrive.',
           );
         }
-      } else {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'Failed to load files from OneDrive.',
-        );
+      } finally {
+        setLoadingFiles(false);
       }
-    } finally {
-      setLoadingFiles(false);
-    }
-  }, [loadStatus]);
+    },
+    [loadStatus, selectedFolder, status?.folderPath],
+  );
 
   useEffect(() => {
     void (async () => {
       const s = await loadStatus();
       if (s?.connected) {
-        await loadFiles();
+        await loadFiles(s.folderPath);
       }
     })();
   }, [loadStatus, loadFiles]);
@@ -115,6 +129,7 @@ export default function OneDrivePickerModal({
           : s,
       );
       setFiles([]);
+      setSelectedFolder(status?.folderPath ?? '');
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -158,8 +173,26 @@ export default function OneDrivePickerModal({
     );
   } else if (status !== null) {
     const account = status.accountDisplayName ?? status.accountEmail;
+    const folders = status.folders?.length ? status.folders : [status.folderPath];
     content = (
       <>
+        <div className="field">
+          <span>Folder</span>
+          <select
+            value={selectedFolder || folders[0]}
+            onChange={(e) => {
+              const folder = e.target.value;
+              setSelectedFolder(folder);
+              void loadFiles(folder);
+            }}
+          >
+            {folders.map((folder) => (
+              <option key={folder} value={folder}>
+                {folder}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="filter-bar">
           <label className="filter-label">
             <input
@@ -173,7 +206,7 @@ export default function OneDrivePickerModal({
         </div>
         <p className="muted">
           {account ? `Connected as ${account} — ` : ''}folder &ldquo;
-          {status.folderPath}&rdquo;
+          {selectedFolder || folders[0]}&rdquo;
         </p>
         {loadingFiles ? (
           <div className="spinner" aria-label="Loading files" />
