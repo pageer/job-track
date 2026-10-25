@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Application;
 use App\Entity\Job;
+use App\Entity\JobActivity;
 use App\Entity\User;
 use App\Enum\CoverLetterKind;
 use App\Enum\JobStatus;
@@ -87,6 +88,16 @@ class ApplicationController extends AbstractController
         }
 
         $this->entityManager->persist($application);
+
+        $user = $this->getUser();
+        $activity = new JobActivity();
+        $activity->setUser($user);
+        $activity->setDescription(sprintf('Applied to %s', $job->getCompany()));
+        $activity->setDetails(sprintf('[%s](/jobs/%d)', $job->getTitle(), $job->getId()));
+        $activity->setDate(new \DateTimeImmutable('today'));
+        $activity->setHoursSpent(0.5);
+        $this->entityManager->persist($activity);
+
         $this->entityManager->flush();
 
         return $this->json($application, Response::HTTP_CREATED, [], ['groups' => ['application.read', 'interview.read']]);
