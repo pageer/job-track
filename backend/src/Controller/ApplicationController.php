@@ -94,8 +94,9 @@ class ApplicationController extends AbstractController
         $activity->setUser($user);
         $activity->setDescription(sprintf('Applied to %s', $job->getCompany()));
         $activity->setDetails(sprintf('[%s](/jobs/%d)', $job->getTitle(), $job->getId()));
-        $now = new \DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get()));
-        $activity->setDate($now->setTime(0, 0));
+        $tz = new \DateTimeZone(date_default_timezone_get());
+        $now = new \DateTimeImmutable('now', $tz);
+        $activity->setDate(\DateTimeImmutable::createFromFormat('Y-m-d', $now->format('Y-m-d'), $tz) ?: $now->setTime(0, 0));
         $activity->setHoursSpent(0.5);
         $this->entityManager->persist($activity);
 
