@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { api, ApiError } from '../api';
-import { useJobSearches } from '../jobSearches';
+import { activeJobSearch, useJobSearches } from '../jobSearches';
 import type { JobSearch } from '../types';
 import { formatDate } from '../utils';
 import ErrorBanner from '../components/ErrorBanner';
@@ -42,6 +42,11 @@ export default function DashboardPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const active = activeJobSearch(searches);
+  if (!loading && active) {
+    return <Navigate to={`/searches/${active.id}`} replace />;
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
