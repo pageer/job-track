@@ -39,7 +39,8 @@ class ApiCsrfSubscriber implements EventSubscriberInterface
         }
     }
 
-    private function noCsrfNeeded(string $path, Request $request): bool {
+    private function noCsrfNeeded(string $path, Request $request): bool
+    {
         if (!str_starts_with($path, '/api')) {
             return true;
         }
