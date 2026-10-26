@@ -87,6 +87,7 @@
         }
     },
     "require-dev": {
+        "lvandi/php-crap-checker": "^1.0",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",

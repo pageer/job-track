@@ -29,17 +29,7 @@ class ApiCsrfSubscriber implements EventSubscriberInterface
         $request = $event->getRequest();
         $path = $request->getPathInfo();
 
-        if (!str_starts_with($path, '/api')) {
-            return;
-        }
-
-        if (in_array($request->getMethod(), ['GET', 'HEAD', 'OPTIONS'], true)) {
-            return;
-        }
-
-        // The login request is CSRF-protected by the session cookie (SameSite=Lax)
-        // and receives a fresh CSRF token in its response.
-        if ('/api/auth/login' === $path) {
+        if ($this->noCsrfNeeded($path, $request)) {
             return;
         }
 
@@ -47,5 +37,23 @@ class ApiCsrfSubscriber implements EventSubscriberInterface
         if (null === $token || !$this->csrfTokenManager->isTokenValid(new CsrfToken('app', $token))) {
             throw new AccessDeniedHttpException('Invalid or missing CSRF token.');
         }
+    }
+
+    private function noCsrfNeeded(string $path, Request $request): bool {
+        if (!str_starts_with($path, '/api')) {
+            return true;
+        }
+
+        if (in_array($request->getMethod(), ['GET', 'HEAD', 'OPTIONS'], true)) {
+            return true;
+        }
+
+        // The login request is CSRF-protected by the session cookie (SameSite=Lax)
+        // and receives a fresh CSRF token in its response.
+        if ('/api/auth/login' === $path) {
+            return true;
+        }
+
+        return false;
     }
 }

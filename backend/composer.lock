@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1bfb8ad8a60c8d0ebb5bca44d73551cb",
+    "content-hash": "781bccbb33b687d14bb0df09a627dd94",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -5935,6 +5935,59 @@
         }
     ],
     "packages-dev": [
+        {
+            "name": "lvandi/php-crap-checker",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/LucianoVandi/php-crap-checker.git",
+                "reference": "ad125dd79538d47d47663cb87aaeef09ce8aac8f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/LucianoVandi/php-crap-checker/zipball/ad125dd79538d47d47663cb87aaeef09ce8aac8f",
+                "reference": "ad125dd79538d47d47663cb87aaeef09ce8aac8f",
+                "shasum": ""
+            },
+            "require": {
+                "ext-simplexml": "*",
+                "php": ">=8.3",
+                "symfony/console": "^7.0"
+            },
+            "require-dev": {
+                "ergebnis/composer-normalize": "^2.51",
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "icanhazstring/composer-unused": "^0.9.6",
+                "infection/infection": "^0.29 || ^0.32",
+                "phpmd/phpmd": "^2.0",
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^11.0 || ^12.0",
+                "rector/rector": "^2.0"
+            },
+            "suggest": {
+                "ext-pcov": "Useful for generating PHPUnit coverage reports with PCOV.",
+                "ext-xdebug": "Alternative coverage driver for PHPUnit."
+            },
+            "bin": [
+                "bin/crap-check"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Lvandi\\PhpCrapChecker\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A CLI tool to fail CI when PHP CRAP score exceeds a configured threshold.",
+            "support": {
+                "issues": "https://github.com/LucianoVandi/php-crap-checker/issues",
+                "source": "https://github.com/LucianoVandi/php-crap-checker/tree/v1.0.0"
+            },
+            "time": "2026-04-26T07:50:22+00:00"
+        },
         {
             "name": "myclabs/deep-copy",
             "version": "1.14.0",
