@@ -325,7 +325,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $data = $this->decodeJson($response);
@@ -341,7 +341,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $token->setExpiresAt((new \DateTimeImmutable())->modify('-1 hour'));
         $token->setRefreshToken('refresh-token');
 
-        $client = $this->client(['isConfigured' => true]);
+        $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $client->method('refreshAccess')->willReturn([
             'accessToken' => 'fresh-token',
             'refreshToken' => 'fresh-refresh',
@@ -355,7 +355,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertSame('fresh-token', $token->getAccessToken());
@@ -368,7 +368,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $controller = new OneDriveController($client, $this->tokenRepositoryReturning(null), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
         $this->assertSame('Connect your OneDrive account to browse files.', $this->decodeJson($response)['error']);
@@ -380,7 +380,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $response->getStatusCode());
     }
@@ -392,7 +392,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $token->setExpiresAt((new \DateTimeImmutable())->modify('-1 hour'));
         $token->setRefreshToken('refresh-token');
 
-        $client = $this->client(['isConfigured' => true]);
+        $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $client->method('refreshAccess')->willThrowException(new OneDriveAuthException('Expired.'));
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
@@ -402,7 +402,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
         $this->assertSame('Your OneDrive connection has expired. Please connect again.', $this->decodeJson($response)['error']);
@@ -414,13 +414,13 @@ final class OneDriveControllerTest extends ControllerTestCase
         $token->setAccessToken('access-token');
         $token->setExpiresAt((new \DateTimeImmutable())->modify('+1 hour'));
 
-        $client = $this->client(['isConfigured' => true]);
+        $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $client->method('listFiles')->willThrowException(new OneDriveException('Upstream down.'));
 
         $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
-        $response = $controller->files();
+        $response = $controller->files($this->filesRequest());
 
         $this->assertSame(Response::HTTP_BAD_GATEWAY, $response->getStatusCode());
         $this->assertSame('Upstream down.', $this->decodeJson($response)['error']);
@@ -451,7 +451,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client = $this->createMock(OneDriveClient::class);
         $client->method('isConfigured')->willReturn($behaviors['isConfigured'] ?? false);
         if (array_key_exists('folderPath', $behaviors)) {
-            $client->method('getFolderPath')->willReturn($behaviors['folderPath']);
+            $client->method('getFolderPaths')->willReturn([$behaviors['folderPath']]);
         }
         $client->method('getRedirectUri')->willReturn('');
 
@@ -478,6 +478,19 @@ final class OneDriveControllerTest extends ControllerTestCase
         $token->setAccountDisplayName($displayName);
 
         return $token;
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    private function filesRequest(array $query = []): Request
+    {
+        $params = '';
+        if ([] !== $query) {
+            $params = '?' . http_build_query($query);
+        }
+
+        return Request::create('https://example.com/api/onedrive/files' . $params, 'GET');
     }
 
     /**

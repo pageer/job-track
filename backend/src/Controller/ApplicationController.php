@@ -89,6 +89,7 @@ class ApplicationController extends AbstractController
 
         $this->entityManager->persist($application);
 
+        /** @var User $user */
         $user = $this->getUser();
         $activity = new JobActivity();
         $activity->setUser($user);

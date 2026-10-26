@@ -165,9 +165,10 @@ class InterviewController extends AbstractController
                 $this->entityManager->persist($person);
             }
 
-            $contact = $contactsByPersonId[$person->getId()] ?? null;
+            $personId = $person->getId();
+            $contact = null !== $personId ? ($contactsByPersonId[$personId] ?? null) : null;
             if (null === $contact) {
-                $contact = $this->contactForPerson($person->getId(), $date, $description);
+                $contact = $this->contactForPerson($personId, $date, $description);
             }
             if (null === $contact->getId()) {
                 $contact->setPerson($person);

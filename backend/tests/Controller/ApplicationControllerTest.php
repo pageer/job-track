@@ -7,6 +7,7 @@ namespace App\Tests\Controller;
 use App\Controller\ApplicationController;
 use App\Entity\Application;
 use App\Entity\Job;
+use App\Entity\JobActivity;
 use App\Entity\JobSearch;
 use App\Enum\CoverLetterKind;
 use App\Enum\JobStatus;
@@ -84,10 +85,10 @@ final class ApplicationControllerTest extends ControllerTestCase
         $jobRepository = $this->createMock(JobRepository::class);
         $jobRepository->method('find')->with(9)->willReturn($job);
 
-        $persisted = null;
+        $persisted = [];
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('persist')->willReturnCallback(function (mixed $entity) use (&$persisted): void {
-            $persisted = $entity;
+            $persisted[] = $entity;
         });
         $entityManager->expects($this->once())->method('flush');
 
@@ -109,8 +110,10 @@ final class ApplicationControllerTest extends ControllerTestCase
         $this->assertSame('Applied via portal', $data['notes']);
         $this->assertSame('2026-09-01', substr($data['actionDate'], 0, 10));
 
-        $this->assertInstanceOf(Application::class, $persisted);
-        $this->assertSame($job, $persisted->getJob());
+        $this->assertInstanceOf(Application::class, $persisted[0]);
+        $this->assertSame($job, $persisted[0]->getJob());
+        $this->assertInstanceOf(JobActivity::class, $persisted[1]);
+        $this->assertSame($this->user, $persisted[1]->getUser());
         $this->assertSame(JobStatus::Applied, $job->getStatus());
     }
 
