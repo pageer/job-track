@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Ascending progress bars with upward arrow">
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  <g fill="#ffffff">
+    <rect x="13" y="40" width="9" height="13" rx="2.5"/>
+    <rect x="28" y="32" width="9" height="21" rx="2.5"/>
+    <rect x="43" y="24" width="9" height="29" rx="2.5"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M38 24l11-11"/>
+    <path d="M42 13h7v7"/>
+  </g>
+</svg>
