@@ -13,6 +13,7 @@ import ResumesPage from './pages/ResumesPage';
 import CoverLettersPage from './pages/CoverLettersPage';
 import NetworkingPage from './pages/NetworkingPage';
 import UsersPage from './pages/UsersPage';
+import ReportsPage from './pages/ReportsPage';
 
 function FullPageLoader() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/jobs/:jobId" element={<JobDetailPage />} />
           <Route path="/activities" element={<ActivityTrackerPage />} />
           <Route path="/todos" element={<TodoPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/resumes" element={<ResumesPage />} />
           <Route path="/cover-letters" element={<CoverLettersPage />} />
           <Route path="/networking" element={<NetworkingPage />} />

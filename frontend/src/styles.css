@@ -1366,3 +1366,145 @@ a:hover {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
+
+/* ── Reports ── */
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.report-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.report-stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.report-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.report-stat-unit {
+  margin-left: 0.15rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.report-chart {
+  padding: 1rem;
+}
+
+.report-chart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.report-chart-header h2 {
+  font-size: 1rem;
+}
+
+.report-chart-total {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.report-chart-empty {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.bar-chart-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 220px;
+  min-width: 100%;
+}
+
+.bar-chart-col {
+  display: flex;
+  flex: 0 1 4rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 2.5rem;
+  height: 100%;
+}
+
+.bar-chart-value {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.bar-chart-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  border-bottom: 1px solid var(--color-border);
+  background-image: repeating-linear-gradient(
+    to top,
+    rgba(226, 229, 234, 0.8) 0 1px,
+    transparent 1px 25%
+  );
+}
+
+.bar-chart-bar {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 100%;
+  max-width: 2rem;
+  background: var(--color-primary);
+  border-radius: 4px 4px 0 0;
+  transform: translateX(-50%);
+  transition: background 0.15s ease;
+}
+
+.bar-chart-col:hover .bar-chart-bar {
+  background: var(--color-primary-hover);
+}
+
+.bar-chart-label {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .report-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .report-stats {
+    grid-template-columns: 1fr;
+  }
+}

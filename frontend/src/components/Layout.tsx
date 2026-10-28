@@ -92,6 +92,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               Users
             </NavLink>
           )}
+          <NavLink to="/reports" className={navLinkClass} onClick={closeMenu}>
+            Reports
+          </NavLink>
           <button
             type="button"
             className="mobile-logout"

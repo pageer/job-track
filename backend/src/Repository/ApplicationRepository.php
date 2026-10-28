@@ -16,6 +16,31 @@ class ApplicationRepository extends ServiceEntityRepository
         parent::__construct($registry, Application::class);
     }
 
+    public function countForUser(int $userId): int
+    {
+        return (int) $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)')
+            ->join('a.job', 'j')
+            ->join('j.jobSearch', 'js')
+            ->where('js.user = :userId')
+            ->setParameter('userId', $userId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countWithInterviewForUser(int $userId): int
+    {
+        return (int) $this->createQueryBuilder('a')
+            ->select('COUNT(DISTINCT a.id)')
+            ->join('a.job', 'j')
+            ->join('j.jobSearch', 'js')
+            ->join('a.interviews', 'i')
+            ->where('js.user = :userId')
+            ->setParameter('userId', $userId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     //    /**
     //     * @return Application[] Returns an array of Application objects
     //     */

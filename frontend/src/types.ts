@@ -34,6 +34,20 @@ export interface JobActivity {
   createdAt: string;
 }
 
+export interface WeeklyReport {
+  weekStart: string;
+  activityCount: number;
+  hours: number;
+}
+
+export interface ReportSummary {
+  totalApplications: number;
+  applicationsWithInterview: number;
+  totalActivities: number;
+  totalHours: number;
+  weekly: WeeklyReport[];
+}
+
 export interface Todo {
   id: number;
   description: string;
