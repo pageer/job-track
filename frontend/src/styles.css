@@ -153,6 +153,10 @@ a:hover {
   text-decoration: none;
 }
 
+.mobile-user-name {
+  display: none;
+}
+
 .app-main {
   flex: 1;
   width: 100%;
@@ -1388,6 +1392,20 @@ a:hover {
 
   .user-menu {
     display: none;
+  }
+
+  .mobile-user-name {
+    display: inline-flex;
+    align-self: flex-start;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  .mobile-user-name:hover {
+    color: var(--color-text);
+    text-decoration: none;
   }
 
   .mobile-logout {
