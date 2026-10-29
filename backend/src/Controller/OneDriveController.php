@@ -4,7 +4,9 @@ namespace App\Controller;
 
 use App\Entity\OneDriveToken;
 use App\Entity\User;
+use App\Entity\UserSettings;
 use App\Repository\OneDriveTokenRepository;
+use App\Repository\UserSettingsRepository;
 use App\Service\OneDriveAuthException;
 use App\Service\OneDriveClient;
 use App\Service\OneDriveException;
@@ -23,6 +25,7 @@ class OneDriveController extends AbstractController
     public function __construct(
         private OneDriveClient $oneDriveClient,
         private OneDriveTokenRepository $tokenRepository,
+        private UserSettingsRepository $settingsRepository,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $logger,
     ) {
@@ -35,7 +38,7 @@ class OneDriveController extends AbstractController
         $user = $this->getUser();
         $token = $this->tokenRepository->findForUser($user->getId());
 
-        $folders = $this->oneDriveClient->getFolderPaths();
+        $folders = $this->folderPathsFor($user);
 
         return $this->json([
             'clientConfigured' => $this->oneDriveClient->isConfigured(),
@@ -45,6 +48,55 @@ class OneDriveController extends AbstractController
             'folderPath' => $folders[0] ?? null,
             'folders' => $folders,
         ]);
+    }
+
+    #[Route('/settings', name: 'settings', methods: ['PUT'])]
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $data = $request->toArray();
+        $folders = $data['folders'] ?? null;
+
+        if (!is_array($folders)) {
+            return $this->json(['error' => 'folders must be an array.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $normalized = [];
+        $seen = [];
+        foreach ($folders as $folder) {
+            if (!is_string($folder)) {
+                return $this->json(['error' => 'Each OneDrive folder must be a string.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $folder = trim($folder, " \t\n\r\0\x0B/");
+            if ('' === $folder) {
+                continue;
+            }
+            if (mb_strlen($folder) > 255) {
+                return $this->json(['error' => 'OneDrive folder paths must be 255 characters or fewer.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $key = mb_strtolower($folder);
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $normalized[] = $folder;
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+        $settings = $this->settingsRepository->findForUser((int) $user->getId());
+        if (null === $settings) {
+            $settings = new UserSettings();
+            $settings->setUser($user);
+            $this->entityManager->persist($settings);
+        }
+
+        $settings->setOneDriveFolders($normalized);
+        $this->entityManager->flush();
+
+        return $this->json(['folders' => $settings->getOneDriveFolders()]);
     }
 
     #[Route('/auth-url', name: 'auth_url', methods: ['GET'])]
@@ -183,7 +235,7 @@ class OneDriveController extends AbstractController
         }
 
         $folderParam = $request->query->get('folder');
-        $folders = $this->oneDriveClient->getFolderPaths();
+        $folders = $this->folderPathsFor($user);
         $folderPath = is_string($folderParam) && in_array($folderParam, $folders, true)
             ? $folderParam
             : ($folders[0] ?? null);
@@ -217,6 +269,16 @@ class OneDriveController extends AbstractController
             'folderPath' => $folderPath,
             'folders' => $folders,
         ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function folderPathsFor(User $user): array
+    {
+        $settings = $this->settingsRepository->findForUser((int) $user->getId());
+
+        return $settings?->getOneDriveFolders() ?? $this->oneDriveClient->getFolderPaths();
     }
 
     private function freshAccessToken(OneDriveToken $token): string

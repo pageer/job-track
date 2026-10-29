@@ -68,6 +68,18 @@ describe('api client', () => {
     expect(init.body).toBe(JSON.stringify({ status: 'applied' }));
   });
 
+  it('sends PUT requests with a JSON body', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ folders: ['Resumes'] }));
+    const data = await api.put<{ folders: string[] }>(
+      '/api/onedrive/settings',
+      { folders: ['Resumes'] },
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify({ folders: ['Resumes'] }));
+    expect(data.folders).toEqual(['Resumes']);
+  });
+
   it('parses JSON responses', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ status: 'applied' }));
     const data = await api.get<{ status: string }>('/api/jobs/1');

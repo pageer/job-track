@@ -14,6 +14,7 @@ import CoverLettersPage from './pages/CoverLettersPage';
 import NetworkingPage from './pages/NetworkingPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function FullPageLoader() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/resumes" element={<ResumesPage />} />
           <Route path="/cover-letters" element={<CoverLettersPage />} />
           <Route path="/networking" element={<NetworkingPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -7,7 +7,9 @@ namespace App\Tests\Controller;
 use App\Controller\OneDriveController;
 use App\Entity\OneDriveToken;
 use App\Entity\User;
+use App\Entity\UserSettings;
 use App\Repository\OneDriveTokenRepository;
+use App\Repository\UserSettingsRepository;
 use App\Service\OneDriveAuthException;
 use App\Service\OneDriveClient;
 use App\Service\OneDriveException;
@@ -26,7 +28,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $tokenRepository = $this->tokenRepositoryReturning($this->token(1, 'me@example.com', 'Me'));
 
-        $controller = new OneDriveController($client, $tokenRepository, $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $tokenRepository, $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->status();
@@ -38,6 +40,99 @@ final class OneDriveControllerTest extends ControllerTestCase
         $this->assertSame('me@example.com', $data['accountEmail']);
         $this->assertSame('Me', $data['accountDisplayName']);
         $this->assertSame('Resumes', $data['folderPath']);
+        $this->assertSame(['Resumes'], $data['folders']);
+    }
+
+    public function testStatusUsesTheUsersConfiguredFolders(): void
+    {
+        $settings = new UserSettings();
+        $settings->setUser($this->user);
+        $settings->setOneDriveFolders(['Job Search', 'Old Resumes']);
+
+        $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
+        $controller = $this->controller(
+            $client,
+            $this->tokenRepositoryReturning(null),
+            null,
+            null,
+            $this->settingsRepositoryReturning($settings),
+        );
+        $this->bindController($controller);
+
+        $data = $this->decodeJson($controller->status());
+
+        $this->assertSame('Job Search', $data['folderPath']);
+        $this->assertSame(['Job Search', 'Old Resumes'], $data['folders']);
+    }
+
+    public function testUpdateSettingsCreatesSettingsForTheUser(): void
+    {
+        $persisted = null;
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('persist')->willReturnCallback(function (mixed $entity) use (&$persisted): void {
+            $persisted = $entity;
+        });
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = $this->controller(
+            $this->client(['isConfigured' => true]),
+            null,
+            $entityManager,
+            null,
+            $this->settingsRepositoryReturning(null),
+        );
+        $this->bindController($controller);
+
+        $response = $controller->updateSettings($this->jsonRequest('PUT', '/api/onedrive/settings', [
+            'folders' => [' Resumes ', '/Old Resumes/', 'resumes', ''],
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(['Resumes', 'Old Resumes'], $this->decodeJson($response)['folders']);
+        $this->assertInstanceOf(UserSettings::class, $persisted);
+        $this->assertSame($this->user, $persisted->getUser());
+        $this->assertSame(['Resumes', 'Old Resumes'], $persisted->getOneDriveFolders());
+    }
+
+    public function testUpdateSettingsReplacesTheExistingFolderList(): void
+    {
+        $settings = new UserSettings();
+        $settings->setUser($this->user);
+        $settings->setOneDriveFolders(['Old']);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->never())->method('persist');
+        $entityManager->expects($this->once())->method('flush');
+
+        $controller = $this->controller(
+            $this->client(['isConfigured' => true]),
+            null,
+            $entityManager,
+            null,
+            $this->settingsRepositoryReturning($settings),
+        );
+        $this->bindController($controller);
+
+        $response = $controller->updateSettings($this->jsonRequest('PUT', '/api/onedrive/settings', [
+            'folders' => ['New'],
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertSame(['New'], $settings->getOneDriveFolders());
+        $this->assertSame(['New'], $this->decodeJson($response)['folders']);
+    }
+
+    public function testUpdateSettingsRequiresAFolderArray(): void
+    {
+        $controller = $this->controller($this->client(['isConfigured' => true]));
+        $this->bindController($controller);
+
+        $response = $controller->updateSettings($this->jsonRequest('PUT', '/api/onedrive/settings', [
+            'folders' => 'Resumes',
+        ]));
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $this->assertSame('folders must be an array.', $this->decodeJson($response)['error']);
     }
 
     public function testStatusShowsDisconnectedWhenNoTokenExists(): void
@@ -45,7 +140,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $tokenRepository = $this->tokenRepositoryReturning(null);
 
-        $controller = new OneDriveController($client, $tokenRepository, $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $tokenRepository, $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->status();
@@ -63,7 +158,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client->method('createCodeChallenge')->willReturn('challenge');
         $client->method('buildAuthorizationUrl')->willReturn('https://login.live.com/oauth');
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $session = $this->session();
@@ -82,7 +177,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     {
         $client = $this->client(['isConfigured' => false]);
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $request = Request::create('/api/onedrive/auth-url', 'GET');
@@ -101,7 +196,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client->method('createCodeChallenge')->willReturn('challenge');
         $client->method('buildAuthorizationUrl')->willReturn('https://login.live.com/oauth');
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $session = $this->session();
@@ -120,7 +215,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client->method('createCodeChallenge')->willReturn('challenge');
         $client->method('buildAuthorizationUrl')->willReturn('https://login.live.com/oauth');
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $session = $this->session();
@@ -138,7 +233,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client = $this->client(['isConfigured' => false]);
         $logger = $this->logger();
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $logger);
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $logger);
         $this->bindController($controller);
 
         $response = $controller->callback($this->callbackRequest([]));
@@ -149,7 +244,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     public function testCallbackRedirectsOnStateMismatch(): void
     {
         $client = $this->client(['isConfigured' => true]);
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'wrong-state', 'code' => 'code']);
@@ -164,7 +259,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     public function testCallbackRequiresAnAuthorizationCode(): void
     {
         $client = $this->client(['isConfigured' => true]);
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'expected-state']);
@@ -195,7 +290,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         });
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $entityManager, $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $entityManager, $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'expected-state', 'code' => 'code123']);
@@ -229,7 +324,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $entityManager, $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $entityManager, $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'expected-state', 'code' => 'code123']);
@@ -247,7 +342,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     public function testCallbackAppendsTheFlagToAReturnToThatAlreadyHasAQuery(): void
     {
         $client = $this->client(['isConfigured' => true]);
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'wrong-state', 'code' => 'code']);
@@ -277,7 +372,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $entityManager->expects($this->never())->method('persist');
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($client, $tokenRepository, $entityManager, $this->logger());
+        $controller = $this->controller($client, $tokenRepository, $entityManager, $this->logger());
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'expected-state', 'code' => 'code123']);
@@ -298,7 +393,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client->method('exchangeCode')->willThrowException(new OneDriveException('Boom'));
         $logger = $this->logger();
 
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $logger);
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $logger);
         $this->bindController($controller);
 
         $request = $this->callbackRequest(['state' => 'expected-state', 'code' => 'code123']);
@@ -322,7 +417,7 @@ final class OneDriveControllerTest extends ControllerTestCase
             ['id' => 'a', 'name' => 'resume.pdf', 'webUrl' => 'https://onedrive.com/a'],
         ]);
 
-        $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -332,6 +427,37 @@ final class OneDriveControllerTest extends ControllerTestCase
         $this->assertCount(1, $data['files']);
         $this->assertSame('resume.pdf', $data['files'][0]['name']);
         $this->assertSame('Resumes', $data['folderPath']);
+    }
+
+    public function testFilesUsesTheUsersConfiguredFolders(): void
+    {
+        $token = $this->token(1);
+        $token->setAccessToken('access-token');
+        $token->setExpiresAt((new \DateTimeImmutable())->modify('+1 hour'));
+
+        $settings = new UserSettings();
+        $settings->setUser($this->user);
+        $settings->setOneDriveFolders(['Custom']);
+
+        $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
+        $client->expects($this->once())
+            ->method('listFiles')
+            ->with('access-token', 'Custom')
+            ->willReturn([]);
+
+        $controller = $this->controller(
+            $client,
+            $this->tokenRepositoryReturning($token),
+            null,
+            null,
+            $this->settingsRepositoryReturning($settings),
+        );
+        $this->bindController($controller);
+
+        $data = $this->decodeJson($controller->files($this->filesRequest()));
+
+        $this->assertSame('Custom', $data['folderPath']);
+        $this->assertSame(['Custom'], $data['folders']);
     }
 
     public function testFilesRefreshesAnExpiredTokenBeforeListing(): void
@@ -352,7 +478,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
+        $controller = $this->controller($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -365,7 +491,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     public function testFilesReturnsConflictWithoutAConnection(): void
     {
         $client = $this->client(['isConfigured' => true]);
-        $controller = new OneDriveController($client, $this->tokenRepositoryReturning(null), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->tokenRepositoryReturning(null), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -377,7 +503,7 @@ final class OneDriveControllerTest extends ControllerTestCase
     public function testFilesIsDisabledWhenNotConfigured(): void
     {
         $client = $this->client(['isConfigured' => false]);
-        $controller = new OneDriveController($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->createMock(OneDriveTokenRepository::class), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -399,7 +525,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $entityManager->expects($this->once())->method('remove')->with($token);
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
+        $controller = $this->controller($client, $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -417,7 +543,7 @@ final class OneDriveControllerTest extends ControllerTestCase
         $client = $this->client(['isConfigured' => true, 'folderPath' => 'Resumes']);
         $client->method('listFiles')->willThrowException(new OneDriveException('Upstream down.'));
 
-        $controller = new OneDriveController($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
+        $controller = $this->controller($client, $this->tokenRepositoryReturning($token), $this->createMock(EntityManagerInterface::class), $this->logger());
         $this->bindController($controller);
 
         $response = $controller->files($this->filesRequest());
@@ -433,13 +559,37 @@ final class OneDriveControllerTest extends ControllerTestCase
         $entityManager->expects($this->once())->method('remove')->with($token);
         $entityManager->expects($this->once())->method('flush');
 
-        $controller = new OneDriveController($this->createMock(OneDriveClient::class), $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
+        $controller = $this->controller($this->createMock(OneDriveClient::class), $this->tokenRepositoryReturning($token), $entityManager, $this->logger());
         $this->bindController($controller);
 
         $response = $controller->disconnect();
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertTrue($this->decodeJson($response)['success']);
+    }
+
+    private function controller(
+        OneDriveClient $client,
+        ?OneDriveTokenRepository $tokenRepository = null,
+        ?EntityManagerInterface $entityManager = null,
+        ?LoggerInterface $logger = null,
+        ?UserSettingsRepository $settingsRepository = null,
+    ): OneDriveController {
+        return new OneDriveController(
+            $client,
+            $tokenRepository ?? $this->createMock(OneDriveTokenRepository::class),
+            $settingsRepository ?? $this->settingsRepositoryReturning(null),
+            $entityManager ?? $this->createMock(EntityManagerInterface::class),
+            $logger ?? $this->logger(),
+        );
+    }
+
+    private function settingsRepositoryReturning(?UserSettings $settings): UserSettingsRepository
+    {
+        $repository = $this->createMock(UserSettingsRepository::class);
+        $repository->method('findForUser')->willReturn($settings);
+
+        return $repository;
     }
 
     /**

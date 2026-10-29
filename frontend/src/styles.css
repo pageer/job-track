@@ -148,6 +148,11 @@ a:hover {
   font-size: 0.9rem;
 }
 
+.user-name:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
 .app-main {
   flex: 1;
   width: 100%;
@@ -477,6 +482,55 @@ a:hover {
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
   box-shadow: var(--shadow-sm);
+}
+
+.profile-card h2 {
+  margin-bottom: 0.5rem;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.profile-details dd {
+  margin: 0;
+}
+
+.profile-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.folder-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.folder-path {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-card .form {
+  margin-top: 0.75rem;
 }
 
 .card-link {

@@ -95,6 +95,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <NavLink to="/reports" className={navLinkClass} onClick={closeMenu}>
             Reports
           </NavLink>
+          <NavLink to="/profile" className={navLinkClass} onClick={closeMenu}>
+            Profile
+          </NavLink>
           <button
             type="button"
             className="mobile-logout"
@@ -107,7 +110,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           </button>
         </nav>
         <div className="user-menu">
-          <span className="user-name">{user?.name}</span>
+          <NavLink to="/profile" className="user-name" title="Profile settings">
+            {user?.name}
+          </NavLink>
           <button
             type="button"
             className="btn btn-sm btn-ghost"

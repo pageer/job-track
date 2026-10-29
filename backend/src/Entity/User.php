@@ -71,6 +71,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: OneDriveToken::class, cascade: ['remove'])]
     private ?OneDriveToken $oneDriveToken = null;
 
+    #[ORM\OneToOne(mappedBy: 'user', targetEntity: UserSettings::class, cascade: ['remove'])]
+    private ?UserSettings $settings = null;
+
     /**
      * @var Collection<int, JobActivity>
      */
@@ -296,6 +299,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getOneDriveToken(): ?OneDriveToken
     {
         return $this->oneDriveToken;
+    }
+
+    public function getSettings(): ?UserSettings
+    {
+        return $this->settings;
     }
 
     /**

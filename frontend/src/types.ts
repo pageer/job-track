@@ -136,8 +136,8 @@ export interface OneDriveStatus {
   connected: boolean;
   accountEmail: string | null;
   accountDisplayName: string | null;
-  folderPath: string;
-  folders?: string[];
+  folderPath: string | null;
+  folders: string[];
 }
 
 export interface CoverLetter {
