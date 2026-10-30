@@ -41,9 +41,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <NavLink to="/" className="brand" onClick={closeMenu}>
-          Job Track
-        </NavLink>
         <button
           type="button"
           className="mobile-menu-btn"
@@ -56,6 +53,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <span className="hamburger-line" />
           <span className="hamburger-line" />
         </button>
+        <NavLink to="/" className="brand" onClick={closeMenu}>
+          Job Track
+        </NavLink>
         <nav
           id="main-nav"
           className={`main-nav ${menuOpen ? 'open' : ''}`}
