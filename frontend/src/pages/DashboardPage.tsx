@@ -15,7 +15,11 @@ interface SearchFormState {
 
 const emptyForm: SearchFormState = { name: '', startDate: '', endDate: '' };
 
-export default function DashboardPage() {
+export default function DashboardPage({
+  redirectToActive = true,
+}: {
+  redirectToActive?: boolean;
+}) {
   const { refresh: refreshNavSearches } = useJobSearches();
   const [searches, setSearches] = useState<JobSearch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +48,7 @@ export default function DashboardPage() {
   }, [load]);
 
   const active = activeJobSearch(searches);
-  if (!loading && active) {
+  if (redirectToActive && !loading && active) {
     return <Navigate to={`/searches/${active.id}`} replace />;
   }
 

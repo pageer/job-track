@@ -44,6 +44,10 @@ export default function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route
+            path="/searches"
+            element={<DashboardPage redirectToActive={false} />}
+          />
           <Route path="/searches/:searchId" element={<SearchDetailPage />} />
           <Route path="/jobs/:jobId" element={<JobDetailPage />} />
           <Route path="/activities" element={<ActivityTrackerPage />} />

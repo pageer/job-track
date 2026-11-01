@@ -193,7 +193,7 @@ export default function JobDetailPage() {
     return (
       <div className="page">
         <ErrorBanner message={error} />
-        <Link to="/" className="btn btn-ghost">
+        <Link to="/searches" className="btn btn-ghost">
           &larr; Back to job searches
         </Link>
       </div>

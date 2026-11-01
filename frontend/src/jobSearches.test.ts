@@ -47,7 +47,7 @@ describe('jobsNavTarget', () => {
 
   it('links to the job search list when no search is active', () => {
     expect(jobsNavTarget([closed(1), closed(2)])).toEqual({
-      to: '/',
+      to: '/searches',
       label: 'Job Searches',
       end: true,
     });
@@ -55,12 +55,16 @@ describe('jobsNavTarget', () => {
 
   it('links to the job search list when several searches are active', () => {
     const target = jobsNavTarget([search({ id: 1 }), search({ id: 2 })]);
-    expect(target).toEqual({ to: '/', label: 'Job Searches', end: true });
+    expect(target).toEqual({
+      to: '/searches',
+      label: 'Job Searches',
+      end: true,
+    });
   });
 
   it('falls back to the job search list before the searches load', () => {
     expect(jobsNavTarget([])).toEqual({
-      to: '/',
+      to: '/searches',
       label: 'Job Searches',
       end: true,
     });

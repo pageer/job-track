@@ -18,12 +18,16 @@ function search(overrides: Partial<JobSearch>): JobSearch {
   };
 }
 
-function renderDashboard() {
+function renderDashboard(initialEntry = '/') {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <JobSearchesProvider>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route
+            path="/searches"
+            element={<DashboardPage redirectToActive={false} />}
+          />
           <Route path="/searches/:searchId" element={<div>Job list</div>} />
         </Routes>
       </JobSearchesProvider>
@@ -54,6 +58,17 @@ describe('DashboardPage', () => {
     ]);
 
     renderDashboard();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Job Searches' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Job list')).not.toBeInTheDocument();
+  });
+
+  it('never redirects from the /searches list, even with one active search', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue([search({ id: 7 })]);
+
+    renderDashboard('/searches');
 
     expect(
       await screen.findByRole('heading', { name: 'Job Searches' }),

@@ -240,7 +240,7 @@ export default function SearchDetailPage() {
     <div className="page">
       <div className="page-header">
         <div>
-          <Link to="/" className="back-link">
+          <Link to="/searches" className="back-link">
             &larr; All job searches
           </Link>
           <h1>{search?.name ?? 'Job search'}</h1>

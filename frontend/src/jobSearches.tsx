@@ -29,7 +29,7 @@ export function jobsNavTarget(searches: JobSearch[]): JobsNavTarget {
   const active = activeJobSearch(searches);
   return active
     ? { to: `/searches/${active.id}`, label: 'Jobs', end: false }
-    : { to: '/', label: 'Job Searches', end: true };
+    : { to: '/searches', label: 'Job Searches', end: true };
 }
 
 interface JobSearchesContextValue {
