@@ -99,6 +99,19 @@ docker compose up -d
 
 The Docker build expects the frontend to already be built into `backend/public/build/`. If you need to rebuild it inside the container, the `Dockerfile` includes a Node.js build stage that runs `npm install && npm run build` in `frontend/`.
 
+## Unified control utility
+
+`jobtrack.php` is a cross-platform (Linux, macOS, Windows) PHP CLI for deployment and maintenance. Run it from the repository root:
+
+```bash
+php jobtrack.php deploy          # deploy.sh --no-build on the server, then push assets
+php jobtrack.php push-assets     # build the frontend and upload it via SCP
+php jobtrack.php local-build     # npm run build + database migrations locally
+php jobtrack.php --help
+```
+
+`deploy` and `push-assets` read the connection settings from `.env` in the project root (`REMOTE_USER`, `REMOTE_HOST`, `REMOTE_PATH`, `REMOTE_DEPLOY_DIR`, `REMOTE_PORT`). The existing shell and PowerShell scripts are still available.
+
 ## API overview
 
 All endpoints are under `/api`. Authentication is session-based with a SameSite=Lax cookie. State-changing requests (except login) require an `X-CSRF-TOKEN` header — the token is returned by login, `/api/auth/me`, and `/api/setup/status`.
