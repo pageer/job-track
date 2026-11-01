@@ -2,6 +2,9 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { jobsNavTarget, useJobSearches } from '../jobSearches';
 import { useEffect, useState, type ReactNode } from 'react';
+// Vite rewrites this import to a string URL, so the image resolves in both dev
+// and production. Small SVGs are inlined as data URIs in the production build.
+import logoUrl from '../assets/logo.svg';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -54,7 +57,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <span className="hamburger-line" />
         </button>
         <NavLink to="/" className="brand" onClick={closeMenu}>
-          Job Track
+          <img src={logoUrl} alt="Job Track" />
         </NavLink>
         <nav
           id="main-nav"

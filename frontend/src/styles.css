@@ -104,9 +104,14 @@ a:hover {
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--color-text);
+  display: flex;
+  align-items: center;
+}
+
+.brand img {
+  display: block;
+  width: auto;
+  height: 40px;
 }
 
 .brand:hover {
