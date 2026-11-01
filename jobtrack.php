@@ -17,6 +17,7 @@ declare(strict_types=1);
  */
 
 const APP_NAME = 'jobtrack';
+const CRAP_THRESHOLD = 30;
 
 final class Color
 {
@@ -60,6 +61,7 @@ function main(array $argv): int
         'deploy' => cmdDeploy($args),
         'push-assets' => cmdPushAssets($args),
         'local-build' => cmdLocalBuild($args),
+        'php-check' => cmdPhpCheck($args),
         default => throw new RuntimeException("Unknown command: {$command}\n\n" . usageText()),
     };
 }
@@ -183,6 +185,57 @@ function cmdLocalBuild(array $args): int
 
     println('');
     ok('Local build complete.');
+
+    return 0;
+}
+
+function cmdPhpCheck(array $args): int
+{
+    $options = parseOptions($args, []);
+
+    if (isset($options['help'])) {
+        println('Usage: php jobtrack.php php-check');
+        println('');
+        println('Runs the backend PHP quality checks: PHPCS, PHPUnit (with');
+        println('Crap4J coverage), PHPStan, and the CRAP threshold check.');
+
+        return 0;
+    }
+
+    $root = rootDir();
+    $backend = $root . '/backend';
+
+    requireCommands(['php'], $root);
+
+    println('');
+    println(style(APP_NAME . ' php-check', Color::BOLD));
+
+    step('Running PHPCS');
+    runOrFail(['php', 'vendor/bin/phpcs'], $backend, 'PHPCS failed');
+    ok('PHPCS passed.');
+
+    step('Running PHPUnit with Crap4J coverage');
+    runOrFail(
+        ['php', '-d', 'pcov.enabled=1', 'vendor/bin/phpunit', '--coverage-crap4j', 'build/crap4j.xml'],
+        $backend,
+        'PHPUnit failed'
+    );
+    ok('PHPUnit passed.');
+
+    step('Running PHPStan');
+    runOrFail(['php', 'vendor/bin/phpstan', 'analyse'], $backend, 'PHPStan failed');
+    ok('PHPStan passed.');
+
+    step('Running CRAP check');
+    runOrFail(
+        ['php', 'vendor/bin/crap-check', 'check', 'build/crap4j.xml', '--threshold=' . CRAP_THRESHOLD],
+        $backend,
+        'CRAP check failed'
+    );
+    ok('CRAP check passed.');
+
+    println('');
+    ok('PHP checks complete.');
 
     return 0;
 }
@@ -520,6 +573,7 @@ Commands:
   deploy        Run deploy.sh --no-build on the server, then upload frontend assets
   push-assets   Build the frontend locally and upload it via SCP
   local-build   Run "npm run build" and apply database migrations locally
+  php-check     Run PHPCS, PHPUnit, PHPStan, and the CRAP threshold check
 
 Options:
   -h, --help    Show help for a command

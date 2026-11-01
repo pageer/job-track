@@ -107,6 +107,7 @@ The Docker build expects the frontend to already be built into `backend/public/b
 php jobtrack.php deploy          # deploy.sh --no-build on the server, then push assets
 php jobtrack.php push-assets     # build the frontend and upload it via SCP
 php jobtrack.php local-build     # npm run build + database migrations locally
+php jobtrack.php php-check       # PHPCS, PHPUnit, PHPStan, and CRAP checks
 php jobtrack.php --help
 ```
 
