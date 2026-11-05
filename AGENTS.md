@@ -8,6 +8,20 @@ Job application tracker. Two apps: Symfony 7.4 API backend (`backend/`) + React 
 - After completing a coding task, run the `/review-response` skill and prompt the user to review the changes.
 - After responding to the review, ask the user whether they want to re-review or whether you should commit the changes.
 
+## Quality gates (must pass before review or commit)
+
+Run `php jobtrack.php check` before requesting review (`/review-response`) or committing. It runs every gate below and prints a PASS/FAIL summary:
+
+- backend: PHPCS, PHPUnit + coverage, coverage ratchet, PHPStan, CRAP (threshold 30)
+- frontend: Prettier, ESLint, Vitest + coverage, coverage ratchet, CRAP (threshold 17292, target 30), build
+
+`composer check` and `npm run check` chain the same scripts per app (fail-fast); `jobtrack.php check` runs them all so one failure does not hide the rest. Report every failing gate and its numbers to the user.
+
+- Do not commit if any gate fails. Commit with failing gates only when the user explicitly says "commit anyway", and state the bypass in the response.
+- Coverage baselines live in the gitignored, machine-local `.quality/` directory (one file per app). A missing baseline is not a failure: the gate warns and records it.
+- Never lower or delete a baseline to get a green run; add tests instead. The frontend CRAP threshold is ratcheted down to 30 — lower it in `frontend/.react-crap.json` as complex code is refactored, never raise it.
+- Frontend coverage uses the **Istanbul** provider, not v8: the v8 provider invents one function and one branch for every unexecuted file, which makes those percentages meaningless.
+
 ## Architecture facts that are not obvious
 
 - Vite's `outDir` is `../backend/public/build` with `base: '/build/'` (frontend/vite.config.ts). The frontend build is a build artifact of the backend app: `backend/public/build/` is gitignored. Do not hand-edit files there.
@@ -42,10 +56,15 @@ npm run dev                              # Vite on 5173, /api proxied to 8000
 
 ## QA
 
-No CI. Backend checks run via Composer scripts: `composer check` runs **phpcs → phpunit → phpstan** in that order; each also runs standalone (`composer phpcs`, `composer phpunit`, `composer phpstan`).
+No CI. Run `php jobtrack.php check` to run everything and get a PASS/FAIL summary (see Quality gates above).
 
-Frontend checks run via npm scripts: `npm run check` runs **prettier → eslint → vitest → build** (build runs `tsc --noEmit` + `vite build`). Standalone: `npm run lint` (ESLint 9 flat config, `eslint.config.js`), `npm run format` / `npm run format:check` (Prettier), `npm run test` / `npm run test:watch` (Vitest). Vitest uses jsdom + Testing Library; config lives in `vite.config.ts` (`test` block), setup in `src/test/setup.ts`, tests co-located as `*.test.ts(x)`.
+Backend checks run via Composer scripts: `composer check` runs **phpcs → coverage → coverage-gate → phpstan → crap** in that order; each also runs standalone (`composer phpcs`, `composer coverage`, `composer coverage-gate`, `composer phpstan`, `composer crap`). `composer coverage` runs PHPUnit with PCOV and writes both `build/crap4j.xml` and `build/clover.xml`.
 
+Frontend checks run via npm scripts: `npm run check` runs **prettier → eslint → vitest + coverage → coverage-gate → crap → build** (build runs `tsc --noEmit` + `vite build`). Standalone: `npm run lint` (ESLint 9 flat config, `eslint.config.js`), `npm run format` / `npm run format:check` (Prettier), `npm run test` / `npm run test:watch` (Vitest), `npm run test:coverage` (Vitest + Istanbul coverage), `npm run coverage:gate` (aggregate ratchet), `npm run crap` (react-crap). Vitest uses jsdom + Testing Library; config lives in `vite.config.ts` (`test` block), setup in `src/test/setup.ts`, tests co-located as `*.test.ts(x)`.
+
+- The CRAP gates: backend uses `lvandi/php-crap-checker` against the Crap4J report (blocking at 30); frontend uses `@omermohideen/react-crap` against the LCOV report, configured in `frontend/.react-crap.json` (blocking at the current threshold, target 30).
+- The frontend CRAP gate needs LCOV from `npm run test:coverage`; backend CRAP needs `composer coverage` (the `--max-age=60` guard rejects a stale report).
+- Frontend coverage config must keep `@vitejs/plugin-react`'s `include` matching ids with a query string (`?v=`). Istanbul transforms uncovered files that way; without it raw JSX reaches the SSR parser and the coverage run crashes.
 - ESLint pulls in `react-hooks` v7 recommended-latest rules. `react-hooks/set-state-in-effect` is deliberately downgraded to `warn` because it flags the codebase's canonical async fetch-in-effect pattern.
 - Backend tools: PHPUnit 11 (`phpunit.dist.xml`, tests in `backend/tests/`, service/entity unit tests), PHPStan level 6 + Symfony/Doctrine/PHPUnit extensions (`phpstan.neon`), PHPCS PSR-12 (`phpcs.xml.dist`, only `src/` + `tests/`; long-line sniff disabled; `tests/bootstrap.php` excluded).
 - Verify PHP changes by running `composer check`, then the Symfony server + endpoint hit. Verify frontend changes by running `npm run check`.

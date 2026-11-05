@@ -1,0 +1,7 @@
+{
+  "threshold": 17292,
+  "missing": "pessimistic",
+  "failAbove": true,
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "test/**"],
+  "sort": "crap"
+}

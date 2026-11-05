@@ -17,7 +17,6 @@ declare(strict_types=1);
  */
 
 const APP_NAME = 'jobtrack';
-const CRAP_THRESHOLD = 30;
 
 final class Color
 {
@@ -62,6 +61,8 @@ function main(array $argv): int
         'push-assets' => cmdPushAssets($args),
         'local-build' => cmdLocalBuild($args),
         'php-check' => cmdPhpCheck($args),
+        'react-check' => cmdReactCheck($args),
+        'check' => cmdCheck($args),
         default => throw new RuntimeException("Unknown command: {$command}\n\n" . usageText()),
     };
 }
@@ -196,48 +197,214 @@ function cmdPhpCheck(array $args): int
     if (isset($options['help'])) {
         println('Usage: php jobtrack.php php-check');
         println('');
-        println('Runs the backend PHP quality checks: PHPCS, PHPUnit (with');
-        println('Crap4J coverage), PHPStan, and the CRAP threshold check.');
+        println('Runs the backend quality gates and prints a PASS/FAIL summary:');
+        println('PHPCS, PHPUnit with coverage, the coverage ratchet, PHPStan, and CRAP.');
+        println('');
+        println('Each gate is a composer script, so "composer check" runs the same checks.');
 
         return 0;
     }
 
     $root = rootDir();
+    requireBackendTools($root);
+
+    return runGates('php-check', backendGates($root));
+}
+
+function cmdReactCheck(array $args): int
+{
+    $options = parseOptions($args, []);
+
+    if (isset($options['help'])) {
+        println('Usage: php jobtrack.php react-check');
+        println('');
+        println('Runs the frontend quality gates and prints a PASS/FAIL summary:');
+        println('Prettier, ESLint, Vitest with coverage, the coverage ratchet, CRAP, and the build.');
+        println('');
+        println('Each gate is an npm script, so "npm run check" runs the same checks.');
+
+        return 0;
+    }
+
+    $root = rootDir();
+    requireFrontendTools($root);
+
+    return runGates('react-check', frontendGates($root));
+}
+
+function cmdCheck(array $args): int
+{
+    $options = parseOptions($args, []);
+
+    if (isset($options['help'])) {
+        println('Usage: php jobtrack.php check');
+        println('');
+        println('Runs every backend and frontend quality gate and prints a single');
+        println('PASS/FAIL summary. This is the command to run before review or commit.');
+
+        return 0;
+    }
+
+    $root = rootDir();
+    requireBackendTools($root);
+    requireFrontendTools($root);
+
+    return runGates('check', array_merge(backendGates($root), frontendGates($root)));
+}
+
+function requireBackendTools(string $root): void
+{
+    requireCommands(['php', 'composer'], $root);
+
+    if (!extension_loaded('pcov')) {
+        throw new RuntimeException(
+            'The pcov extension is not loaded; backend coverage and CRAP need it. '
+            . 'Install pcov or enable it in php.ini.'
+        );
+    }
+}
+
+function requireFrontendTools(string $root): void
+{
+    requireCommands(['npm'], $root);
+
+    $frontend = $root . '/frontend';
+    if (!is_dir($frontend . '/node_modules')) {
+        throw new RuntimeException("Frontend dependencies are not installed. Run \"npm install\" in {$frontend}.");
+    }
+}
+
+/**
+ * @return list<array{id: string, label: string, app: string, cwd: string, command: list<string>, dependsOn: ?string}>
+ */
+function backendGates(string $root): array
+{
     $backend = $root . '/backend';
 
-    requireCommands(['php'], $root);
+    return [
+        gate('backend', 'phpcs', 'PHPCS', $backend, ['composer', 'phpcs']),
+        gate('backend', 'coverage', 'PHPUnit + coverage', $backend, ['composer', 'coverage']),
+        gate('backend', 'coverage-gate', 'Coverage ratchet', $backend, ['composer', 'coverage-gate'], 'coverage'),
+        gate('backend', 'phpstan', 'PHPStan', $backend, ['composer', 'phpstan']),
+        gate('backend', 'crap', 'CRAP', $backend, ['composer', 'crap'], 'coverage'),
+    ];
+}
+
+/**
+ * @return list<array{id: string, label: string, app: string, cwd: string, command: list<string>, dependsOn: ?string}>
+ */
+function frontendGates(string $root): array
+{
+    $frontend = $root . '/frontend';
+
+    return [
+        gate('frontend', 'format', 'Prettier', $frontend, ['npm', 'run', 'format:check']),
+        gate('frontend', 'lint', 'ESLint', $frontend, ['npm', 'run', 'lint']),
+        gate('frontend', 'coverage', 'Vitest + coverage', $frontend, ['npm', 'run', 'test:coverage']),
+        gate('frontend', 'coverage-gate', 'Coverage ratchet', $frontend, ['npm', 'run', 'coverage:gate'], 'coverage'),
+        gate('frontend', 'crap', 'CRAP', $frontend, ['npm', 'run', 'crap'], 'coverage'),
+        gate('frontend', 'build', 'Build', $frontend, ['npm', 'run', 'build']),
+    ];
+}
+
+/**
+ * @param list<string> $command
+ * @return array{id: string, label: string, app: string, cwd: string, command: list<string>, dependsOn: ?string}
+ */
+function gate(
+    string $app,
+    string $name,
+    string $label,
+    string $cwd,
+    array $command,
+    ?string $dependsOn = null
+): array {
+    return [
+        'id' => $app . '.' . $name,
+        'label' => $label,
+        'app' => $app,
+        'cwd' => $cwd,
+        'command' => $command,
+        'dependsOn' => $dependsOn === null ? null : $app . '.' . $dependsOn,
+    ];
+}
+
+/**
+ * @param list<array{id: string, label: string, app: string, cwd: string, command: list<string>, dependsOn: ?string}> $gates
+ */
+function runGates(string $title, array $gates): int
+{
+    println('');
+    println(style(APP_NAME . ' ' . $title, Color::BOLD));
+
+    $results = [];
+    $failures = [];
+
+    foreach ($gates as $gate) {
+        $prerequisite = $gate['dependsOn'];
+
+        if ($prerequisite !== null && ($results[$prerequisite]['status'] ?? 'PASS') !== 'PASS') {
+            $results[$gate['id']] = ['status' => 'SKIP'];
+            warn("Skipping {$gate['label']}: a prerequisite gate failed.");
+            continue;
+        }
+
+        step("Running {$gate['label']}");
+        $result = run($gate['command'], $gate['cwd']);
+
+        if ($result['exit'] === 0) {
+            $results[$gate['id']] = ['status' => 'PASS'];
+            ok("{$gate['label']} passed.");
+            continue;
+        }
+
+        $results[$gate['id']] = ['status' => 'FAIL'];
+        $failures[] = $gate['label'];
+        error("{$gate['label']} failed (exit code {$result['exit']}).");
+    }
+
+    printGateSummary($gates, $results);
+
+    if ($failures !== []) {
+        println('');
+        error(count($failures) . ' gate(s) failed: ' . implode(', ', $failures) . '.');
+
+        return 1;
+    }
 
     println('');
-    println(style(APP_NAME . ' php-check', Color::BOLD));
-
-    step('Running PHPCS');
-    runOrFail(['php', 'vendor/bin/phpcs'], $backend, 'PHPCS failed');
-    ok('PHPCS passed.');
-
-    step('Running PHPUnit with Crap4J coverage');
-    runOrFail(
-        ['php', '-d', 'pcov.enabled=1', 'vendor/bin/phpunit', '--coverage-crap4j', 'build/crap4j.xml'],
-        $backend,
-        'PHPUnit failed'
-    );
-    ok('PHPUnit passed.');
-
-    step('Running PHPStan');
-    runOrFail(['php', 'vendor/bin/phpstan', 'analyse'], $backend, 'PHPStan failed');
-    ok('PHPStan passed.');
-
-    step('Running CRAP check');
-    runOrFail(
-        ['php', 'vendor/bin/crap-check', 'check', 'build/crap4j.xml', '--threshold=' . CRAP_THRESHOLD],
-        $backend,
-        'CRAP check failed'
-    );
-    ok('CRAP check passed.');
-
-    println('');
-    ok('PHP checks complete.');
+    ok('All quality gates passed.');
 
     return 0;
+}
+
+/**
+ * @param list<array{id: string, label: string, app: string, cwd: string, command: list<string>, dependsOn: ?string}> $gates
+ * @param array<string, array{status: string}> $results
+ */
+function printGateSummary(array $gates, array $results): void
+{
+    $appWidth = max(array_map(static fn (array $gate): int => strlen($gate['app']), $gates));
+    $labelWidth = max(array_map(static fn (array $gate): int => strlen($gate['label']), $gates));
+
+    println('');
+    println(style('Summary', Color::BOLD));
+
+    foreach ($gates as $gate) {
+        $status = $results[$gate['id']]['status'];
+        $line = sprintf(
+            '  %s  %s  %s',
+            str_pad($gate['app'], $appWidth),
+            str_pad($gate['label'], $labelWidth),
+            $status
+        );
+
+        println(style($line, match ($status) {
+            'PASS' => Color::GREEN,
+            'FAIL' => Color::RED,
+            default => Color::YELLOW,
+        }));
+    }
 }
 
 /**
@@ -573,7 +740,9 @@ Commands:
   deploy        Run deploy.sh --no-build on the server, then upload frontend assets
   push-assets   Build the frontend locally and upload it via SCP
   local-build   Run "npm run build" and apply database migrations locally
-  php-check     Run PHPCS, PHPUnit, PHPStan, and the CRAP threshold check
+  php-check     Run the backend gates (PHPCS, coverage ratchet, PHPStan, CRAP)
+  react-check   Run the frontend gates (Prettier, ESLint, coverage ratchet, CRAP, build)
+  check         Run every backend and frontend gate and print a summary
 
 Options:
   -h, --help    Show help for a command

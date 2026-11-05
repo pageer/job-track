@@ -70,11 +70,16 @@
         ],
         "phpcs": "@php vendor/bin/phpcs",
         "phpunit": "@php vendor/bin/phpunit",
+        "coverage": "@php -d pcov.enabled=1 vendor/bin/phpunit --coverage-crap4j build/crap4j.xml --coverage-clover build/clover.xml",
+        "coverage-gate": "@php tools/coverage-gate.php",
         "phpstan": "@php vendor/bin/phpstan analyse",
+        "crap": "@php vendor/bin/crap-check check build/crap4j.xml --threshold=30 --max-age=60",
         "check": [
             "@phpcs",
-            "@phpunit",
-            "@phpstan"
+            "@coverage",
+            "@coverage-gate",
+            "@phpstan",
+            "@crap"
         ]
     },
     "conflict": {
