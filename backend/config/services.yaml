@@ -7,6 +7,9 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Comma-separated OpenRouter model slugs. The first model is preferred and
+    # later models are fallbacks, so keep the generic "openrouter/free" last.
+    env(OPENROUTER_MODELS): 'openrouter/free'
 
 services:
     # default configuration for services in *this* file
@@ -24,7 +27,7 @@ services:
     App\Service\AiExtractor:
         arguments:
             $apiKey: '%env(OPENROUTER_API_KEY)%'
-            $model: '%env(OPENROUTER_MODEL)%'
+            $models: '%env(csv:OPENROUTER_MODELS)%'
 
     App\Service\OneDriveClient:
         arguments:

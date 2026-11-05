@@ -133,7 +133,7 @@ final class AiExtractorTest extends TestCase
         $extractor = new AiExtractor(
             $this->createMock(HttpClientInterface::class),
             '',
-            'test-model',
+            ['test-model'],
         );
 
         try {
@@ -164,7 +164,7 @@ final class AiExtractorTest extends TestCase
         $extractor = new AiExtractor(
             $this->createMock(HttpClientInterface::class),
             'test-api-key',
-            'test-model',
+            ['test-model'],
         );
 
         try {
@@ -173,6 +173,141 @@ final class AiExtractorTest extends TestCase
         } catch (AiExtractionException $e) {
             $this->assertStringContainsString('empty', $e->getMessage());
         }
+    }
+
+    public function testFallsBackToNextModelWhenARequestFails(): void
+    {
+        $content = json_encode(['job' => ['title' => 'Dev', 'company' => 'Initech']], JSON_THROW_ON_ERROR);
+        $error = json_encode(['error' => ['message' => 'Model unavailable']], JSON_THROW_ON_ERROR);
+
+        $models = [];
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->exactly(2))
+            ->method('request')
+            ->with(
+                $this->anything(),
+                $this->anything(),
+                $this->callback(function ($options) use (&$models): bool {
+                    $models[] = $this->payloadModel($options);
+
+                    return true;
+                }),
+            )
+            ->willReturnOnConsecutiveCalls(
+                $this->response($error, 503),
+                $this->response($this->envelope($content)),
+            );
+
+        $result = (new AiExtractor($client, 'test-api-key', ['primary-model', 'fallback-model']))
+            ->extract('pasted message', 'job');
+
+        $this->assertSame(['primary-model', 'fallback-model'], $models);
+        $this->assertSame('Dev', $result['job']['title']);
+    }
+
+    public function testFallsBackWhenAModelReturnsUnparseableContent(): void
+    {
+        $content = json_encode(['job' => ['title' => 'Dev', 'company' => 'Initech']], JSON_THROW_ON_ERROR);
+
+        $models = [];
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->exactly(3))
+            ->method('request')
+            ->with(
+                $this->anything(),
+                $this->anything(),
+                $this->callback(function ($options) use (&$models): bool {
+                    $models[] = $this->payloadModel($options);
+
+                    return true;
+                }),
+            )
+            ->willReturnOnConsecutiveCalls(
+                $this->response($this->envelope('not json')),
+                $this->response($this->envelope('still not json')),
+                $this->response($this->envelope($content)),
+            );
+
+        $result = (new AiExtractor($client, 'test-api-key', ['first-model', 'second-model']))
+            ->extract('pasted message', 'job');
+
+        $this->assertSame(['first-model', 'first-model', 'second-model'], $models);
+        $this->assertSame('Dev', $result['job']['title']);
+    }
+
+    public function testReportsEveryModelWhenAllFail(): void
+    {
+        $body = json_encode(['error' => ['message' => 'boom']], JSON_THROW_ON_ERROR);
+
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->exactly(2))
+            ->method('request')
+            ->willReturn($this->response($body, 500));
+
+        try {
+            (new AiExtractor($client, 'test-api-key', ['model-a', 'model-b']))->extract('pasted message', 'job');
+            $this->fail('Expected AiExtractionException to be thrown.');
+        } catch (AiExtractionException $e) {
+            $this->assertFalse($e->isConfigurationProblem());
+            $this->assertStringContainsString('model-a', $e->getMessage());
+            $this->assertStringContainsString('model-b', $e->getMessage());
+            $this->assertStringContainsString('500', $e->getMessage());
+        }
+    }
+
+    public function testEmptyModelListThrowsConfigurationProblem(): void
+    {
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->never())->method('request');
+
+        try {
+            (new AiExtractor($client, 'test-api-key', []))->extract('pasted message', 'job');
+            $this->fail('Expected AiExtractionException to be thrown.');
+        } catch (AiExtractionException $e) {
+            $this->assertTrue($e->isConfigurationProblem());
+            $this->assertStringContainsString('OPENROUTER_MODELS', $e->getMessage());
+        }
+    }
+
+    public function testBlankAndDuplicateModelsAreIgnored(): void
+    {
+        $content = json_encode(['job' => ['title' => 'Dev', 'company' => 'Initech']], JSON_THROW_ON_ERROR);
+
+        $models = [];
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->expects($this->once())
+            ->method('request')
+            ->with(
+                $this->anything(),
+                $this->anything(),
+                $this->callback(function ($options) use (&$models): bool {
+                    $models[] = $this->payloadModel($options);
+
+                    return true;
+                }),
+            )
+            ->willReturn($this->response($this->envelope($content)));
+
+        (new AiExtractor($client, 'test-api-key', ['', '  ', 'test-model', 'test-model']))
+            ->extract('pasted message', 'job');
+
+        $this->assertSame(['test-model'], $models);
+    }
+
+    private function payloadModel(mixed $options): string
+    {
+        if (!is_array($options)) {
+            return '';
+        }
+
+        $payload = $options['json'] ?? null;
+        if (!is_array($payload)) {
+            return '';
+        }
+
+        $model = $payload['model'] ?? null;
+
+        return is_string($model) ? $model : '';
     }
 
     private function envelope(string $content): string
@@ -186,14 +321,19 @@ final class AiExtractorTest extends TestCase
 
     private function extractorWithResponse(string $body, int $status = 200): AiExtractor
     {
+        $client = $this->createMock(HttpClientInterface::class);
+        $client->method('request')->willReturn($this->response($body, $status));
+
+        return new AiExtractor($client, 'test-api-key', ['test-model']);
+    }
+
+    private function response(string $body, int $status = 200): ResponseInterface
+    {
         $response = $this->createMock(ResponseInterface::class);
         $response->method('getStatusCode')->willReturn($status);
         $response->method('getContent')->willReturn($body);
         $response->method('toArray')->willReturn(json_decode($body, true));
 
-        $client = $this->createMock(HttpClientInterface::class);
-        $client->method('request')->willReturn($response);
-
-        return new AiExtractor($client, 'test-api-key', 'test-model');
+        return $response;
     }
 }

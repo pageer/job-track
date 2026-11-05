@@ -17,10 +17,13 @@ class AiExtractor
 
     private const MAX_TEXT_LENGTH = 50000;
 
+    /**
+     * @param list<string> $models OpenRouter model slugs, tried in order; the first is preferred.
+     */
     public function __construct(
         private HttpClientInterface $httpClient,
         private string $apiKey,
-        private string $model,
+        private array $models,
     ) {
     }
 
@@ -47,22 +50,61 @@ class AiExtractor
             );
         }
 
-        $decoded = $this->decodeJson($this->complete($text, $intent));
-        if (null === $decoded) {
-            // One retry with a stricter prompt before giving up.
-            $decoded = $this->decodeJson($this->complete($text, $intent, true));
-        }
-        if (null === $decoded) {
-            throw new AiExtractionException('OpenRouter returned an unparseable response. Please try again.');
+        $models = $this->configuredModels();
+        if ([] === $models) {
+            throw new AiExtractionException(
+                'No OpenRouter models are configured. Set OPENROUTER_MODELS to a comma-separated list of model slugs.',
+                true
+            );
         }
 
-        return $this->normalize($decoded, $intent);
+        $failures = [];
+        foreach ($models as $model) {
+            try {
+                $decoded = $this->decodeJson($this->complete($text, $intent, $model));
+                if (null === $decoded) {
+                    // One retry with a stricter prompt before falling back to the next model.
+                    $decoded = $this->decodeJson($this->complete($text, $intent, $model, true));
+                }
+            } catch (AiExtractionException $e) {
+                $failures[] = sprintf('%s: %s', $model, $e->getMessage());
+                continue;
+            }
+
+            if (null === $decoded) {
+                $failures[] = sprintf('%s: returned an unparseable response', $model);
+                continue;
+            }
+
+            return $this->normalize($decoded, $intent);
+        }
+
+        throw new AiExtractionException(sprintf(
+            'OpenRouter could not extract the message with any configured model (%s).',
+            implode('; ', $failures)
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function configuredModels(): array
+    {
+        $models = [];
+        foreach ($this->models as $model) {
+            $model = trim($model);
+            if ('' !== $model && !in_array($model, $models, true)) {
+                $models[] = $model;
+            }
+        }
+
+        return $models;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(string $text, string $intent, bool $strict): array
+    private function buildPayload(string $text, string $intent, string $model, bool $strict): array
     {
         $system = $strict
             ? 'You extract structured data from recruiter messages for a job application tracker. '
@@ -87,7 +129,7 @@ class AiExtractor
         );
 
         return [
-            'model' => $this->model,
+            'model' => $model,
             'temperature' => 0,
             'max_tokens' => 2000,
             'messages' => [
@@ -102,7 +144,7 @@ class AiExtractor
      *
      * @throws AiExtractionException when the request fails or the response is unusable.
      */
-    private function complete(string $text, string $intent, bool $strict = false): string
+    private function complete(string $text, string $intent, string $model, bool $strict = false): string
     {
         try {
             $response = $this->httpClient->request('POST', self::API_URL, [
@@ -110,7 +152,7 @@ class AiExtractor
                     'Authorization' => 'Bearer ' . $this->apiKey,
                     'Content-Type' => 'application/json',
                 ],
-                'json' => $this->buildPayload($text, $intent, $strict),
+                'json' => $this->buildPayload($text, $intent, $model, $strict),
                 'timeout' => 60,
             ]);
         } catch (TransportExceptionInterface $e) {

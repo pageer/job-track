@@ -80,7 +80,7 @@ Frontend checks run via npm scripts: `npm run check` runs **prettier → eslint 
 ## AI-assisted data entry ("Auto-fill from message")
 
 - Paste an email/LinkedIn message → `POST /api/ai/extract` (backend `src/Controller/AiController.php`) sends it to OpenRouter (`backend/src/Service/AiExtractor.php`, `symfony/http-client`) and returns a normalized `{job, interview, summary}` object. The **frontend** (`frontend/src/components/AiImportModal.tsx`, helpers in `frontend/src/aiImport.ts`) then lets the user review/edit and saves **through the existing create endpoints** (job, application, interview) — no separate backend persist logic.
-- Config lives in `backend/.env(.local)`: `OPENROUTER_API_KEY` (empty = feature disabled; returns 503 on extract) and `OPENROUTER_MODEL` (defaults to `google/gemma-4-31b-it:free`). Both are resolved in `backend/config/services.yaml`.
+- Config lives in `backend/.env(.local)`: `OPENROUTER_API_KEY` (empty = feature disabled; returns 503 on extract) and `OPENROUTER_MODELS` (comma-separated slugs tried in order, defaults to `openrouter/free`; put specific models first and keep `openrouter/free` last as a generic fallback). Both are resolved in `backend/config/services.yaml` (`csv:` processor for the list).
 - `AiExtractor` normalizes/validates model output (allowed job statuses, URLs, dates → `Y-m-d\TH:i:s`, interviewer lists) and throws `AiExtractionException` (config problems → 503, upstream/call errors → 502).
 
 ## OneDrive resume picker
