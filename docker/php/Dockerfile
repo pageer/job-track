@@ -14,19 +14,26 @@ RUN cd frontend && npm run build
 # ---- Stage 2: PHP + Apache serving the Symfony app ----
 FROM php:8.3-apache AS runtime
 
-RUN docker-php-ext-install pdo_mysql opcache \
-    && a2enmod rewrite headers
+# Composer needs either ext-zip or the unzip binary to unpack dist archives;
+# the stock php image ships neither, which makes `composer install` fail.
+# libzip-dev provides the headers for ext-zip.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libzip-dev unzip \
+    && docker-php-ext-install pdo_mysql opcache zip \
+    && a2enmod rewrite headers \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 COPY --from=frontend /src/backend /var/www/html
 
-RUN chown -R www-data:www-data /var/www/html \
-    && cd /var/www/html \
-    && [ -f .env ] || cp .env.example .env \
-    && COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
-    && rm -rf var/cache/*
+RUN set -eux; \
+    cd /var/www/html; \
+    if [ ! -f .env ]; then cp .env.example .env; fi; \
+    COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader; \
+    rm -rf var/cache/*; \
+    chown -R www-data:www-data /var/www/html
 
 COPY docker/php/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php/entrypoint.sh /usr/local/bin/app-entrypoint

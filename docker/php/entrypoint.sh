@@ -13,6 +13,9 @@ php bin/console doctrine:migrations:migrate --no-interaction
 
 echo "Warming up the cache..."
 php bin/console cache:warmup --no-interaction
+# The entrypoint runs as root; hand the generated cache/session dirs back to
+# Apache's user so sessions and cache misses can be written at runtime.
+chown -R www-data:www-data var
 
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
   if php bin/console app:create-admin "$ADMIN_EMAIL" "$ADMIN_NAME" "$ADMIN_PASSWORD" >/dev/null 2>&1; then

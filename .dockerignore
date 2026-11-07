@@ -7,7 +7,16 @@
 **/var
 **/dist
 
-backend/.env.local
-backend/.env.test
+# Never bake local configuration or secrets into the image. The Dockerfile
+# falls back to copying backend/.env.example, so keep that one in the context.
+.env
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+
+# Machine-local coverage baselines.
+.quality
 
 .dockerignore

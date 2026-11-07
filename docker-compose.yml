@@ -1,7 +1,6 @@
 services:
   db:
     image: mysql:8.4
-    container_name: jobtrack-db
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -22,7 +21,6 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: jobtrack-web
     restart: unless-stopped
     ports:
       - "8080:80"
