@@ -1547,6 +1547,22 @@ a:hover {
   .nav-backdrop {
     display: block;
   }
+
+  /* Stack activity cards: title, details, then hours + actions at the bottom. */
+  .activity-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-card .card-title-row {
+    display: contents;
+  }
+
+  .activity-card .activity-actions {
+    order: 1;
+    justify-content: flex-end;
+    margin-top: 0.6rem;
+  }
 }
 
 .page-toolbar-wrap {

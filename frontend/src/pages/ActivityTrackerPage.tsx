@@ -193,12 +193,12 @@ export default function ActivityTrackerPage() {
                 </div>
                 <ul className="card-list">
                   {day.activities.map((activity) => (
-                    <li key={activity.id} className="card">
+                    <li key={activity.id} className="card activity-card">
                       <div className="card-title-row">
                         <span className="card-title">
                           {activity.description}
                         </span>
-                        <div className="btn-group">
+                        <div className="btn-group activity-actions">
                           <span className="hours-badge">
                             {formatHours(activity.hoursSpent)}
                           </span>
