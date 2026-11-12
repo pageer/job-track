@@ -7,6 +7,12 @@ import {
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
+import {
+  DEFAULT_ACTIVE_STATUSES,
+  loadJobFilters,
+  saveJobFilters,
+  type SortKey,
+} from '../jobFilters';
 import { useJobSearches } from '../jobSearches';
 import type { JobSearchDetail, JobStatus } from '../types';
 import { JOB_STATUSES, JOB_STATUS_LABELS } from '../types';
@@ -37,12 +43,6 @@ const emptyJobForm: JobFormState = {
   descriptionUrl: '',
 };
 
-const defaultActiveStatuses = new Set<JobStatus>(
-  JOB_STATUSES.filter((s) => s !== 'rejected'),
-);
-
-type SortKey = 'createdAt' | 'actionDate';
-
 export default function SearchDetailPage() {
   const { searchId } = useParams<{ searchId: string }>();
   const navigate = useNavigate();
@@ -67,10 +67,22 @@ export default function SearchDetailPage() {
   const [showAiImport, setShowAiImport] = useState(false);
 
   const [activeStatuses, setActiveStatuses] = useState<Set<JobStatus>>(
-    defaultActiveStatuses,
+    () => loadJobFilters(searchId ?? '').statuses,
   );
-  const [jobFilter, setJobFilter] = useState('');
-  const [sortBy, setSortBy] = useState<SortKey>('createdAt');
+  const [jobFilter, setJobFilter] = useState(
+    () => loadJobFilters(searchId ?? '').filter,
+  );
+  const [sortBy, setSortBy] = useState<SortKey>(
+    () => loadJobFilters(searchId ?? '').sortBy,
+  );
+
+  useEffect(() => {
+    saveJobFilters(searchId ?? '', {
+      statuses: activeStatuses,
+      filter: jobFilter,
+      sortBy,
+    });
+  }, [searchId, activeStatuses, jobFilter, sortBy]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -194,7 +206,7 @@ export default function SearchDetailPage() {
   }
 
   function selectDefaultStatuses() {
-    setActiveStatuses(defaultActiveStatuses);
+    setActiveStatuses(DEFAULT_ACTIVE_STATUSES);
   }
 
   function handleJobFilterChange(value: string) {
@@ -202,7 +214,7 @@ export default function SearchDetailPage() {
     if (value.trim()) {
       setActiveStatuses(new Set(JOB_STATUSES));
     } else if (activeStatuses.size === JOB_STATUSES.length) {
-      setActiveStatuses(defaultActiveStatuses);
+      setActiveStatuses(DEFAULT_ACTIVE_STATUSES);
     }
   }
 
