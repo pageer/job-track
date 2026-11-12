@@ -5,6 +5,7 @@ import {
   toDateInputValue,
   toDateTimeInputValue,
   formatFileSize,
+  hasVisibleHtmlText,
 } from './utils';
 
 describe('formatDate', () => {
@@ -119,5 +120,29 @@ describe('formatFileSize', () => {
   it('formats megabytes with one decimal', () => {
     expect(formatFileSize(1024 * 1024)).toBe('1.0 MB');
     expect(formatFileSize(3.5 * 1024 * 1024)).toBe('3.5 MB');
+  });
+});
+
+describe('hasVisibleHtmlText', () => {
+  it('treats missing or empty values as empty', () => {
+    expect(hasVisibleHtmlText(null)).toBe(false);
+    expect(hasVisibleHtmlText(undefined)).toBe(false);
+    expect(hasVisibleHtmlText('')).toBe(false);
+  });
+
+  it('ignores markup and whitespace-only content', () => {
+    expect(hasVisibleHtmlText('<p></p>')).toBe(false);
+    expect(hasVisibleHtmlText('<p><br></p>')).toBe(false);
+    expect(hasVisibleHtmlText('<p> &nbsp; </p>')).toBe(false);
+    expect(hasVisibleHtmlText('<!-- comment -->')).toBe(false);
+  });
+
+  it('detects real text', () => {
+    expect(hasVisibleHtmlText('<p>Hello</p>')).toBe(true);
+    expect(hasVisibleHtmlText('Hello')).toBe(true);
+  });
+
+  it('treats embedded media as visible', () => {
+    expect(hasVisibleHtmlText('<p><img src="letter.png"></p>')).toBe(true);
   });
 });

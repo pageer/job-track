@@ -21,12 +21,14 @@ import {
   formatDateTime,
   formatFileSize,
   formatDate,
+  hasVisibleHtmlText,
   toDateInputValue,
   toDateTimeInputValue,
 } from '../utils';
 import { buildTimeline } from '../timeline';
 import { consumeOneDriveFlag, oneDriveError } from '../oneDrive';
 import ErrorBanner from '../components/ErrorBanner';
+import ApplicationDetails from '../components/ApplicationDetails';
 import Modal from '../components/Modal';
 import RichTextEditor from '../components/RichTextEditor';
 import AiImportModal from '../components/AiImportModal';
@@ -201,6 +203,7 @@ export default function JobDetailPage() {
   }
 
   const application = job.application;
+  const hasDescription = hasVisibleHtmlText(job.descriptionHtml);
   const timeline = buildTimeline(job);
 
   async function handleJobEditSubmit(e: FormEvent) {
@@ -544,12 +547,12 @@ export default function JobDetailPage() {
 
       <ErrorBanner message={error} />
 
-      {job.descriptionHtml ? (
+      {hasDescription ? (
         <section className="panel">
           <h2>Description</h2>
           <div
             className={`rich-text pre-wrap collapsible-preview ${showFullDescription ? 'collapsible-expanded' : 'collapsible-collapsed'}`}
-            dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
+            dangerouslySetInnerHTML={{ __html: job.descriptionHtml ?? '' }}
           />
           <button
             type="button"
@@ -603,99 +606,12 @@ export default function JobDetailPage() {
             </button>
           </div>
         ) : (
-          <div className="application-detail">
-            {application.actionDate && (
-              <div className="detail-row">
-                <span className="detail-label">Action date</span>
-                <span>{formatDate(application.actionDate)}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">Resume</span>
-              <span className="detail-value">
-                {application.resumeKind === 'file' ? (
-                  <>
-                    <a
-                      className="break-word"
-                      href={`/api/applications/${application.id}/resume/download`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {application.resumeFileName}
-                    </a>{' '}
-                    <small>
-                      ({formatFileSize(application.resumeFileSize)},{' '}
-                      {application.resumeMimeType})
-                    </small>
-                  </>
-                ) : application.resumeKind === 'link' ? (
-                  <a
-                    className="break-word"
-                    href={application.resumeLinkUrl ?? '#'}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {application.resumeLinkUrl}
-                  </a>
-                ) : (
-                  <em>None</em>
-                )}
-                {application.resumeKind && (
-                  <>
-                    {' '}
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => void handleClearResume()}
-                    >
-                      Clear
-                    </button>
-                  </>
-                )}
-              </span>
-            </div>
-            {application.coverLetterKind === 'link' &&
-            application.coverLetterLinkUrl ? (
-              <div className="detail-row">
-                <span className="detail-label">Cover letter</span>
-                <span className="detail-value">
-                  <a
-                    className="break-word"
-                    href={application.coverLetterLinkUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {application.coverLetterLinkUrl}
-                  </a>
-                </span>
-              </div>
-            ) : application.coverLetterHtml ? (
-              <div className="detail-row">
-                <span className="detail-label">Cover letter</span>
-                <div>
-                  <div
-                    className={`collapsible-preview ${showFullLetter ? 'collapsible-expanded' : 'collapsible-collapsed'}`}
-                    dangerouslySetInnerHTML={{
-                      __html: application.coverLetterHtml,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost collapsible-toggle"
-                    onClick={() => setShowFullLetter((v) => !v)}
-                  >
-                    {showFullLetter ? 'Show less' : 'Show more'}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            {application.notes && (
-              <div className="detail-row">
-                <span className="detail-label">Notes</span>
-                <span className="pre-wrap">{application.notes}</span>
-              </div>
-            )}
-          </div>
+          <ApplicationDetails
+            application={application}
+            showFullLetter={showFullLetter}
+            onToggleLetter={() => setShowFullLetter((v) => !v)}
+            onClearResume={() => void handleClearResume()}
+          />
         )}
       </section>
 

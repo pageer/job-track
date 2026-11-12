@@ -1163,6 +1163,7 @@ a:hover {
 
 .collapsible-preview {
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .collapsible-collapsed {
@@ -1563,6 +1564,16 @@ a:hover {
     justify-content: flex-end;
     margin-top: 0.6rem;
   }
+
+  /* Put application links on their own line under the label on small screens. */
+  .detail-row-stack {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .detail-row-stack .detail-label {
+    flex: 0 0 auto;
+  }
 }
 
 .page-toolbar-wrap {
@@ -1577,6 +1588,7 @@ a:hover {
 .detail-value {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .break-word {

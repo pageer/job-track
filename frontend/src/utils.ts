@@ -99,3 +99,26 @@ export function formatHours(hours: number | null | undefined): string {
     : rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
   return `${text} h`;
 }
+
+const VISIBLE_MEDIA_TAG =
+  /<(?:img|video|audio|iframe|embed|object|svg|canvas)\b/i;
+
+/**
+ * True when sanitized rich-text HTML would render something visible: actual
+ * text (ignoring whitespace and `&nbsp;`) or embedded media. Empty editor
+ * output such as `<p></p>` or `<p><br></p>` counts as nothing.
+ */
+export function hasVisibleHtmlText(html: string | null | undefined): boolean {
+  if (!html) {
+    return false;
+  }
+  if (VISIBLE_MEDIA_TAG.test(html)) {
+    return true;
+  }
+  return (
+    html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .trim().length > 0
+  );
+}
