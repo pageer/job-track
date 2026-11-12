@@ -122,3 +122,34 @@ export function hasVisibleHtmlText(html: string | null | undefined): boolean {
       .trim().length > 0
   );
 }
+
+/**
+ * Returns the href when the rich-text HTML consists of exactly one link and
+ * nothing else (no surrounding text or media). Used to render a link-only
+ * cover letter as a plain link instead of a collapsible text preview.
+ */
+export function onlyLinkHref(html: string | null | undefined): string | null {
+  if (!html) {
+    return null;
+  }
+  const body = new DOMParser().parseFromString(html, 'text/html').body;
+  const links = body.querySelectorAll('a[href]');
+  if (links.length !== 1) {
+    return null;
+  }
+  const href = links[0].getAttribute('href')?.trim() ?? '';
+  if (!href) {
+    return null;
+  }
+  const rest = body.cloneNode(true) as HTMLElement;
+  rest.querySelectorAll('a[href]').forEach((link) => link.remove());
+  if ((rest.textContent ?? '').replace(/\u00a0/g, ' ').trim().length > 0) {
+    return null;
+  }
+  if (
+    rest.querySelector('img, video, audio, iframe, embed, object, svg, canvas')
+  ) {
+    return null;
+  }
+  return href;
+}

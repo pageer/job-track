@@ -1,5 +1,10 @@
 import type { Application } from '../types';
-import { formatDate, formatFileSize, hasVisibleHtmlText } from '../utils';
+import {
+  formatDate,
+  formatFileSize,
+  hasVisibleHtmlText,
+  onlyLinkHref,
+} from '../utils';
 
 interface ApplicationDetailsProps {
   application: Application;
@@ -14,7 +19,10 @@ export default function ApplicationDetails({
   onToggleLetter,
   onClearResume,
 }: ApplicationDetailsProps) {
-  const coverLetterLink = application.coverLetterLinkUrl ?? '';
+  const coverLetterLink =
+    application.coverLetterLinkUrl ||
+    onlyLinkHref(application.coverLetterHtml) ||
+    '';
   const coverLetterHasText = hasVisibleHtmlText(application.coverLetterHtml);
 
   return (
@@ -84,7 +92,7 @@ export default function ApplicationDetails({
           </span>
         </div>
       ) : coverLetterHasText ? (
-        <div className="detail-row">
+        <div className="detail-row detail-row-stack">
           <span className="detail-label">Cover letter</span>
           <div>
             <div

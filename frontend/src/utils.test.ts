@@ -6,6 +6,7 @@ import {
   toDateTimeInputValue,
   formatFileSize,
   hasVisibleHtmlText,
+  onlyLinkHref,
 } from './utils';
 
 describe('formatDate', () => {
@@ -144,5 +145,46 @@ describe('hasVisibleHtmlText', () => {
 
   it('treats embedded media as visible', () => {
     expect(hasVisibleHtmlText('<p><img src="letter.png"></p>')).toBe(true);
+  });
+});
+
+describe('onlyLinkHref', () => {
+  it('returns the href for a link-only value', () => {
+    expect(
+      onlyLinkHref(
+        '<p><a href="https://example.com/letter.pdf">https://example.com/letter.pdf</a></p>',
+      ),
+    ).toBe('https://example.com/letter.pdf');
+  });
+
+  it('ignores surrounding whitespace and empty paragraphs', () => {
+    expect(
+      onlyLinkHref(
+        '<p></p><p> <a href="https://example.com/letter.pdf">link</a> </p><p><br></p>',
+      ),
+    ).toBe('https://example.com/letter.pdf');
+  });
+
+  it('returns null when there is text outside the link', () => {
+    expect(
+      onlyLinkHref(
+        '<p>See <a href="https://example.com/letter.pdf">my letter</a></p>',
+      ),
+    ).toBeNull();
+  });
+
+  it('returns null for multiple links', () => {
+    expect(
+      onlyLinkHref(
+        '<p><a href="https://a.example">A</a> <a href="https://b.example">B</a></p>',
+      ),
+    ).toBeNull();
+  });
+
+  it('returns null without a usable link', () => {
+    expect(onlyLinkHref(null)).toBeNull();
+    expect(onlyLinkHref('<p>Just text</p>')).toBeNull();
+    expect(onlyLinkHref('<p><a href=" ">blank</a></p>')).toBeNull();
+    expect(onlyLinkHref('<p><img src="letter.png"></p>')).toBeNull();
   });
 });

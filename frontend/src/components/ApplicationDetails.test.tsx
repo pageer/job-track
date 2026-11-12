@@ -56,6 +56,23 @@ describe('ApplicationDetails', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders a link-only cover letter body as a stacked link without a toggle', () => {
+    renderDetails({
+      coverLetterKind: 'text',
+      coverLetterHtml:
+        '<p><a href="https://example.com/letter.pdf">https://example.com/letter.pdf</a></p>',
+    });
+
+    const link = screen.getByRole('link', {
+      name: 'https://example.com/letter.pdf',
+    });
+    expect(link).toHaveAttribute('href', 'https://example.com/letter.pdf');
+    expect(link.closest('.detail-row')).toHaveClass('detail-row-stack');
+    expect(
+      screen.queryByRole('button', { name: 'Show more' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('prefers a stored link even when empty cover letter HTML is present', () => {
     renderDetails({
       coverLetterKind: null,
