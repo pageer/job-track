@@ -123,6 +123,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             Networking
           </NavLink>
+          <NavLink to="/career" className={navLinkClass} onClick={closeMenu}>
+            Career
+          </NavLink>
           <NavLink to="/reports" className={navLinkClass} onClick={closeMenu}>
             Reports
           </NavLink>

@@ -56,6 +56,16 @@ export interface Todo {
   createdAt: string;
 }
 
+export interface Accomplishment {
+  id: number;
+  /** ISO date string; displayed as year + month. */
+  date: string;
+  /** Employer at that time. */
+  company: string;
+  /** Freeform text; displayed first line, expandable to full entry. */
+  description: string;
+}
+
 export interface JobSearchDetail extends JobSearch {
   jobs: JobSummary[];
 }
