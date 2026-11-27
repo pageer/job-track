@@ -87,6 +87,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $todos;
 
     /**
+     * @var Collection<int, Accomplishment>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Accomplishment::class, orphanRemoval: true)]
+    private Collection $accomplishments;
+
+    /**
      * @var Collection<int, Company>
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Company::class, orphanRemoval: true)]
@@ -105,6 +111,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->coverLetters = new ArrayCollection();
         $this->jobActivities = new ArrayCollection();
         $this->todos = new ArrayCollection();
+        $this->accomplishments = new ArrayCollection();
         $this->companies = new ArrayCollection();
         $this->people = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
@@ -360,6 +367,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($todo->getUser() === $this) {
                 $todo->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Accomplishment>
+     */
+    public function getAccomplishments(): Collection
+    {
+        return $this->accomplishments;
+    }
+
+    public function addAccomplishment(Accomplishment $accomplishment): static
+    {
+        if (!$this->accomplishments->contains($accomplishment)) {
+            $this->accomplishments->add($accomplishment);
+            $accomplishment->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAccomplishment(Accomplishment $accomplishment): static
+    {
+        if ($this->accomplishments->removeElement($accomplishment)) {
+            // set the owning side to null (unless already changed)
+            if ($accomplishment->getUser() === $this) {
+                $accomplishment->setUser(null);
             }
         }
 

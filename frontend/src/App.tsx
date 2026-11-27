@@ -12,6 +12,7 @@ import TodoPage from './pages/TodoPage';
 import ResumesPage from './pages/ResumesPage';
 import CoverLettersPage from './pages/CoverLettersPage';
 import NetworkingPage from './pages/NetworkingPage';
+import CareerPage from './pages/CareerPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/resumes" element={<ResumesPage />} />
           <Route path="/cover-letters" element={<CoverLettersPage />} />
           <Route path="/networking" element={<NetworkingPage />} />
+          <Route path="/career" element={<CareerPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
